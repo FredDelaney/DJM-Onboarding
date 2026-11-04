@@ -13,7 +13,7 @@
 .insightPanel strong{font-size:13px}.insightPanel p{line-height:1.55;color:#50627d}.insightPanel small{color:#8e9bb0}
 .tabs{display:flex;align-items:center;gap:12px;margin:24px 0 27px}
 .tab,.tabActive{border:0;border-radius:999px;min-height:44px;padding:11px 18px;background:transparent;color:#6a7e98;font:inherit;font-size:14px;font-weight:600;cursor:pointer}
-.tabActive{background:var(--agency-primary,#367cff);color:white}
+.tabActive{background:var(--agency-primary,#367cff);color:var(--agency-on-primary,#fff)}
 .panels{display:grid;gap:31px}
 .block,.requests{display:grid;gap:12px}
 .sectionHeader{display:flex;align-items:center;justify-content:space-between;min-height:38px}
@@ -36,8 +36,8 @@
 .table th{padding:13px 14px;background:#f3f7ff;font-size:12px;color:#3a4e6b;white-space:nowrap}
 .table th svg{display:inline;margin-left:5px;vertical-align:middle}
 .table td{padding:15px 14px;border-top:1px solid #e9eef5;font-size:13px;color:#4b5d77}
-.clickable{cursor:pointer}.clickable:hover{background:#f7faff}
-.openRecord{display:inline-flex;align-items:center;justify-content:center;gap:5px;min-height:44px;min-width:88px;padding:0 8px;border:0;border-radius:8px;background:transparent;color:var(--agency-primary,#367cff);font:inherit;font-weight:650;cursor:pointer;white-space:nowrap}
+.openRecord{display:inline-flex;align-items:center;gap:6px;min-height:44px;max-width:100%;padding:4px 8px;border:0;border-radius:8px;background:transparent;color:var(--agency-primary,#367cff);font:inherit;font-weight:650;cursor:pointer;text-align:left;overflow-wrap:anywhere}
+.openRecord svg{flex:none}
 .openRecord:hover,.openRecord:focus-visible{background:#ecf3ff}
 .tableWrap .empty{border:0;min-height:180px}
 .footnote{margin:25px 0 0;color:#95a3b7;font-size:12px;line-height:1.6}
@@ -58,7 +58,7 @@
 .headActions{align-self:center}
 .insights{font-size:13px;min-height:44px;font-weight:600;border-color:#e1e8f1}
 .tabs{margin:24px 0 28px;gap:8px}
-.tab,.tabActive{padding:10px 19px;min-height:39px;font-size:14px;border-radius:999px;font-weight:570;transition:background .15s ease}
+.tab,.tabActive{padding:10px 19px;min-height:44px;font-size:14px;border-radius:999px;font-weight:570}
 .tab:hover{background:#f2f5fa;color:#23344c}
 .tabActive{font-weight:650}
 .panels{gap:27px}
@@ -75,8 +75,6 @@
 .tableWrap{border-radius:12px;border-color:#dfe6f0;box-shadow:0 2px 6px #1b314410}
 .table th{height:51px;background:#f3f7fc;color:#43536c;font-weight:700}
 .table td{height:60px;color:#43536c}
-.table tr.clickable:hover{background:#f8faff}
-.table tr.clickable:focus-visible{outline:3px solid color-mix(in srgb,var(--agency-primary,#26374a) 22%,transparent);outline-offset:-4px}
 .footnote{margin-top:25px}
 @media(max-width:720px){
 .page{padding:10px 12px 26px;border-radius:14px}
@@ -103,18 +101,18 @@
 }
 @media(max-width:400px){.clubHeader{padding:15px 13px}.headlines h1{font-size:19px}.insights,.addActionButton{padding-inline:12px}}
 
-/* Requests remain a table on desktop; show readable cards on narrow phones. */
+/* Keep the same record order in the desktop table and phone cards. */
 @media(max-width:720px){
   .requestCardWrap{border:0;box-shadow:none;overflow:visible}
   .requestTable,.requestTable tbody{display:block;min-width:0;width:100%}
   .requestTable thead{display:none}
   .requestTable tbody{display:grid;gap:12px}
-  .requestTable tbody tr.clickable{display:grid;grid-template-columns:minmax(0,1fr);gap:0;border:1px solid #dfe6f0;border-radius:13px;background:#fff;overflow:hidden}
-  .requestTable tbody tr.clickable:active{background:#f3f7ff}
-  .requestTable tbody tr.clickable td{display:flex;justify-content:space-between;align-items:baseline;gap:12px;height:auto;min-height:44px;padding:10px 14px;border-top:1px solid #eef1f6;text-align:right;overflow-wrap:anywhere}
-  .requestTable tbody tr.clickable td:first-child{border-top:0;background:#f7f9fc;color:#1b2638;font-weight:700;text-align:left}
-  .requestTable tbody tr.clickable td::before{content:attr(data-label);flex:0 0 auto;color:#718098;font-size:12px;font-weight:600;text-align:left}
-  .requestTable tbody tr.clickable td:first-child::before{display:none}
+  .requestTable tbody tr.recordRow{display:grid;grid-template-columns:minmax(0,1fr);border:1px solid #dfe6f0;border-radius:13px;background:#fff;overflow:hidden}
+  .requestTable tbody tr.recordRow td{display:flex;justify-content:space-between;align-items:baseline;gap:12px;height:auto;min-height:44px;padding:10px 14px;border-top:1px solid #eef1f6;text-align:right;overflow-wrap:anywhere}
+  .requestTable tbody tr.recordRow td:first-child{border-top:0;background:#f7f9fc;color:#1b2638;font-weight:700;text-align:left;padding-block:2px}
+  .requestTable tbody tr.recordRow td::before{content:attr(data-label);flex:0 0 auto;color:#536b85;font-size:12px;font-weight:600;text-align:left}
+  .requestTable tbody tr.recordRow td:first-child::before{display:none}
+  .recordRow .openRecord{width:100%;justify-content:space-between;padding-inline:0}
 }
 /* Verified club identity reconciliation stays inside the club profile. */
 .linkExisting{min-height:44px;display:inline-flex;align-items:center;padding:0 14px;border:1px solid #d8e2ed;background:#fff;border-radius:999px;color:var(--agency-primary,#367cff);font:inherit;font-size:13px;font-weight:650;cursor:pointer}

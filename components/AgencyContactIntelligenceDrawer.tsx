@@ -22,6 +22,7 @@ import {
   useRef,
   useState,
 } from 'react';
+import Link from 'next/link';
 
 import {
   friendlyError,
@@ -39,6 +40,7 @@ import RecordActivitySummary from './RecordActivitySummary';
 import RecordDetails from './RecordDetails';
 import {recordEditReady} from '@/lib/record-edit-readiness';
 import { readWithDeadline } from '@/lib/read-with-deadline';
+import {workspaceClubHref} from '@/lib/workspace-record-navigation';
 import styles from './AgencyContactIntelligenceDrawer.module.css';
 
 type Rpc = <T = any>(
@@ -53,6 +55,7 @@ type Props = {
   onRefresh: () => Promise<void>;
   onRecordRefresh?: () => Promise<void>;
   onOpenClub: (clubName: string) => void;
+  basePath?: string;
   presentation?: 'drawer' | 'page';
   scope?: string;
 };
@@ -106,6 +109,7 @@ export default function AgencyContactIntelligenceDrawer({
   onRefresh,
   onRecordRefresh,
   onOpenClub,
+  basePath,
   presentation = 'drawer',
   scope = '',
 }: Props) {
@@ -278,6 +282,10 @@ export default function AgencyContactIntelligenceDrawer({
     summaryEmployment;
 
   const restricted = Boolean(detail?.access?.restricted || contact?.access?.restricted);
+  const linkedClubName = clean(detail?.employment?.organisation_name);
+  const clubHref = basePath && linkedClubName && !busy && !error && !restricted && loadedPersonId === clean(contact?.person_id)
+    ? workspaceClubHref(basePath, detail?.employment?.organisation_id)
+    : null;
   const reach =
     detail?.reach || {};
 
@@ -682,9 +690,9 @@ export default function AgencyContactIntelligenceDrawer({
               <h2>{name}</h2>
 
               <p>
-                {[role, clubName]
-                  .filter(Boolean)
-                  .join(' · ')}
+                {role} · {clubHref
+                  ? <Link className={styles.employmentLink} href={clubHref} prefetch={false} aria-label={'Open club: '+linkedClubName}>{linkedClubName}<ArrowRight size={14} aria-hidden="true"/></Link>
+                  : clubName}
               </p>
 
               <div className={styles.headerMeta}>
@@ -734,7 +742,7 @@ export default function AgencyContactIntelligenceDrawer({
               data-ui-button="icon"
               className={styles.close}
               onClick={onClose}
-              aria-label={pageMode ? 'Back to Network' : 'Close person details'}
+              aria-label={pageMode ? 'Back to Contacts' : 'Close person details'}
             >
               {pageMode ? <ArrowLeft size={17} /> : <X size={17} />}
             </button>
@@ -1463,7 +1471,7 @@ export default function AgencyContactIntelligenceDrawer({
                 />
               </div>
 
-              <button
+              {!basePath ? <button
                 type="button"
                 data-ui-button="tertiary"
                 className={
@@ -1479,7 +1487,7 @@ export default function AgencyContactIntelligenceDrawer({
                   size={15}
                 />
                 Open club context
-              </button>
+              </button> : null}
             </details>
           </div>
         ) : null}

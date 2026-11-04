@@ -1,9 +1,11 @@
 'use client';
 
-import {ArrowLeft, ArrowUpDown, Building2, ChevronRight, Globe2, Lightbulb, LoaderCircle, Plus, Shield, UsersRound} from 'lucide-react';
+import {ArrowLeft, Building2, ChevronRight, Lightbulb, LoaderCircle, Plus, Shield, UsersRound} from 'lucide-react';
 import {useCallback,useEffect,useMemo,useRef,useState, type ReactNode} from 'react';
 import {friendlyError} from '@/lib/platform-client';
-import {clubNeedFinancialFacts} from '@/lib/club-need-brief';
+import {clubNeedFinancialFacts,formatCommercialAmount} from '@/lib/club-need-brief';
+import {readWithDeadline} from '@/lib/read-with-deadline';
+import {UUID_PATTERN} from '@/lib/entity-context';
 import styles from './AgencyClubReferenceDetail.module.css';
 import ClubIdentityMark, {CountryFlag} from './ClubIdentityMark';
 
@@ -16,13 +18,15 @@ type Tab='overview'|'requests'|'deals';
 
 const items=(value:unknown):any[]=>Array.isArray(value)?value:[];
 const txt=(value:unknown)=>String(value??'').trim();
-const amount=(value:unknown,currency:unknown)=>{
-  if(value===null||value===undefined||value==='')return 'Not specified';
-  const n=Number(value);
-  if(!Number.isFinite(n))return 'Not specified';
-  try{return new Intl.NumberFormat('en-GB',{style:'currency',currency:String(currency||'EUR'),maximumFractionDigits:0}).format(n);}
-  catch{return String(value)+' '+String(currency||'');}
+const amount=(value:unknown,currency:unknown)=>formatCommercialAmount(value,currency)||'Not specified';
+const dateLabel=(value:unknown,empty:string)=>{
+  if(!value)return empty;
+  const timestamp=Date.parse(txt(value));
+  return Number.isFinite(timestamp)
+    ? new Intl.DateTimeFormat('en-GB',{day:'numeric',month:'short',year:'numeric',timeZone:'UTC'}).format(timestamp)
+    : 'Date needs review';
 };
+const isActiveRequest=(need:any)=>need.status==='active'&&(!need.expires_at||Date.parse(need.expires_at)>=Date.now());
 
 const wageBudgetLabel=(need:any)=>clubNeedFinancialFacts(need).find(([label])=>label==='Salary budget')?.[1]||'Not specified';
 const requestPriorityLabel=(value:unknown)=>({1:'Low',2:'Routine',3:'Normal',4:'High',5:'Urgent'} as Record<string,string>)[String(value??'')]||'Not set';
@@ -45,6 +49,7 @@ export default function AgencyClubReferenceDetail({
   const [detail,setDetail]=useState<Detail|null>(null);
   const [loading,setLoading]=useState(true);
   const [error,setError]=useState('');
+  const peopleRead=useRef<AbortController|null>(null);
   const [insights,setInsights]=useState(false);
   const [actionsOpen,setActionsOpen]=useState(false);
   const linkConfirmRef=useRef<HTMLDivElement|null>(null);
@@ -61,23 +66,26 @@ export default function AgencyClubReferenceDetail({
   const organisationId=txt(club.organisation_id||club.id);
 
   const load=useCallback(async()=>{
+    peopleRead.current?.abort();
+    const controller=new AbortController();
+    peopleRead.current=controller;
     setLoading(true);setError('');
     try {
-      const response=await invoke('club_reference_people',{organisation_id:organisationId});
+      const response=await readWithDeadline(invoke('club_reference_people',{organisation_id:organisationId}),12000,controller.signal);
       const data=response?.people;
       if(!Array.isArray(data?.players)||!Array.isArray(data?.contacts))throw new Error('Club people could not be verified.');
-      setDetail(data);
-    } catch(cause){setError(friendlyError(cause));}
-    finally{setLoading(false);}
+      if(!controller.signal.aborted)setDetail(data);
+    } catch(cause){if(!controller.signal.aborted){setDetail(null);setError(friendlyError(cause));}}
+    finally{if(!controller.signal.aborted)setLoading(false);}
   },[invoke,organisationId]);
-  useEffect(()=>{void load();},[load,refreshKey]);
+  useEffect(()=>{void load();return()=>peopleRead.current?.abort();},[load,refreshKey]);
   useEffect(()=>{if(linkSelected)linkConfirmRef.current?.scrollIntoView({block:'nearest',behavior:'smooth'});},[linkSelected]);
   useEffect(()=>{
     if(!linkOpen||!detail?.can_link_players)return;
     let active=true;
     setLinkLoading(true);setLinkError('');
     const timer=setTimeout(()=>{
-      void invoke('club_link_candidates',{organisation_id:organisationId,search:linkSearch.trim()})
+      void readWithDeadline(invoke('club_link_candidates',{organisation_id:organisationId,search:linkSearch.trim()}))
         .then(result=>{
           if(!active)return;
           const records=result?.candidates?.items;
@@ -106,10 +114,9 @@ export default function AgencyClubReferenceDetail({
     }catch(cause){setLinkError(friendlyError(cause));}
     finally{setLinkSaving(false);}
   };
-  const requests=useMemo(()=>requestsFilter==='all'?needRows:needRows.filter(x=>['active','open','confirmed'].includes(String(x.status||'').toLowerCase())),[needRows,requestsFilter]);
+  const requests=useMemo(()=>requestsFilter==='all'?needRows:needRows.filter(isActiveRequest),[needRows,requestsFilter]);
   const name=txt(club.name)||'Club';
   const country=txt(club.country),league=txt(club.league_name);
-  const initials=name.split(/\s+/).slice(0,2).map(x=>x[0]?.toUpperCase()).join('');
 
   return <section className={styles.page} role="region" aria-label={`Club details for ${name}`}>
     <button type="button" className={styles.return} onClick={onClose}><ArrowLeft size={17}/> Back to Clubs</button>
@@ -138,7 +145,7 @@ export default function AgencyClubReferenceDetail({
     </header>
     {insights&&<section className={styles.insightPanel}><strong>Recorded relationship insights</strong><p>{account?.top_strategic_play?.recommended_action||'No recommended next step has been recorded for this club.'}</p><small>Based on ReDream agency records, not external predictions.</small></section>}
     <nav className={styles.tabs} aria-label="Club sections">
-      {(['overview','requests','deals'] as const).map(id=><button type="button" key={id} className={tab===id?styles.tabActive:styles.tab} onClick={()=>setTab(id)}>{id[0].toUpperCase()+id.slice(1)}</button>)}
+      {(['overview','requests','deals'] as const).map(id=><button type="button" key={id} aria-current={tab===id?'page':undefined} className={tab===id?styles.tabActive:styles.tab} onClick={()=>setTab(id)}>{id[0].toUpperCase()+id.slice(1)}</button>)}
     </nav>
     {tab==='overview'&&<div className={styles.panels}>
       <section className={styles.block}>
@@ -185,13 +192,23 @@ export default function AgencyClubReferenceDetail({
     </div>}
     {tab==='requests'&&<section className={styles.requests}>
       <div className={styles.sectionHeader}><h2>Requests</h2><div className={styles.actions}><label className={styles.srOnly} htmlFor="club-request-state">Request status</label><select id="club-request-state" value={requestsFilter} onChange={e=>setRequestsFilter(e.target.value as 'all'|'active')}><option value="active">Active</option><option value="all">All</option></select>{canCreateRecords&&<button type="button" className={styles.plus} onClick={onCreateNeed} aria-label="Add request"><Plus size={20}/></button>}</div></div>
-      <div className={[styles.tableWrap,styles.requestCardWrap].join(' ')}><table className={[styles.table,styles.requestTable].join(' ')}><thead><tr><th>Position <ArrowUpDown size={12}/></th><th>Valid until</th><th>Priority</th><th>Players</th><th>Budget</th><th>Wage Budget</th><th>Deal preference</th></tr></thead>
-      <tbody>{requests.map(need=><tr key={need.club_need_id} tabIndex={0} onClick={()=>onOpenMarket(need.club_need_id)} onKeyDown={event=>{if(event.key==='Enter'||event.key===' '){event.preventDefault();onOpenMarket(need.club_need_id);}}} className={styles.clickable}><td data-label="Position">{need.position||need.title||'Not specified'}</td><td data-label="Valid until">{need.expires_at?new Date(need.expires_at).toLocaleDateString('en-GB',{month:'short',year:'numeric'}):'Not specified'}</td><td data-label="Priority">{requestPriorityLabel(need.priority)}</td><td data-label="Players">Review matches</td><td data-label="Transfer budget">{amount(need.transfer_budget,need.currency)}</td><td data-label="Wage budget">{wageBudgetLabel(need)}</td><td data-label="Deal preference">{transferPreferenceLabel(need.transfer_type)}</td></tr>)}</tbody>
-      </table>{!requests.length&&<div className={styles.empty}><span className={styles.emptyIcon}><Shield size={25}/></span><p>No requests found</p></div>}</div>
+      <div className={`${styles.tableWrap} ${styles.requestCardWrap}`}><table className={`${styles.table} ${styles.requestTable}`}><thead><tr><th>Request</th><th>Valid until</th><th>Priority</th><th>Transfer budget</th><th>Wage budget</th><th>Deal preference</th></tr></thead>
+      <tbody>{requests.map(need=>{
+        const title=need.title||need.position||'Club request';
+        return <tr key={need.club_need_id} className={styles.recordRow}>
+          <td data-label="Request">{UUID_PATTERN.test(txt(need.club_need_id))?<button type="button" className={styles.openRecord} aria-label={'Open request: '+title} onClick={()=>onOpenMarket(need.club_need_id)}>{title}<ChevronRight size={16}/></button>:title}</td>
+          <td data-label="Valid until">{dateLabel(need.expires_at,'Not specified')}</td>
+          <td data-label="Priority">{requestPriorityLabel(need.priority)}</td>
+          <td data-label="Transfer budget">{amount(need.transfer_budget,need.currency)}</td>
+          <td data-label="Wage budget">{wageBudgetLabel(need)}</td>
+          <td data-label="Deal preference">{transferPreferenceLabel(need.transfer_type)}</td>
+        </tr>;
+      })}</tbody>
+      </table>{!requests.length&&<div className={styles.empty}><span className={styles.emptyIcon}><Shield size={25}/></span><p>{requestsFilter==='active'?'No active requests':'No requests recorded'}</p></div>}</div>
     </section>}
     {tab==='deals'&&<section className={styles.requests}><div className={styles.sectionHeader}><h2>Deals</h2>{canCreateRecords&&<button type="button" className={styles.plus} aria-label="Add deal" onClick={onCreateDeal}><Plus size={20}/></button>}</div>
-      <div className={styles.tableWrap}><table className={styles.table}><thead><tr><th>Deal</th><th>Stage</th><th>Expected Commission</th><th>Next Action</th><th>Open</th></tr></thead><tbody>
-        {dealRows.map(deal=><tr key={deal.deal_room_id}><td>{deal.title||'Deal'}</td><td>{deal.stage||'Not specified'}</td><td>{amount(deal.expected_commission,deal.currency)}</td><td>{deal.next_action_at?new Date(deal.next_action_at).toLocaleDateString('en-GB'):'Not scheduled'}</td><td><button type="button" className={styles.openRecord} aria-label="Open deal" onClick={()=>onOpenDeal(deal.deal_room_id,deal.title||'Deal',name)}>Open deal <ChevronRight size={16}/></button></td></tr>)}
+      <div className={`${styles.tableWrap} ${styles.requestCardWrap}`}><table className={`${styles.table} ${styles.requestTable}`}><thead><tr><th>Deal</th><th>Stage</th><th>Expected commission</th><th>Next action</th></tr></thead><tbody>
+        {dealRows.map(deal=><tr key={deal.deal_room_id} className={styles.recordRow}><td data-label="Deal">{UUID_PATTERN.test(txt(deal.deal_room_id))?<button type="button" className={styles.openRecord} aria-label={'Open deal: '+(deal.title||'Deal')} onClick={()=>onOpenDeal(deal.deal_room_id,deal.title||'Deal',name)}>{deal.title||'Deal'} <ChevronRight size={16}/></button>:deal.title||'Deal'}</td><td data-label="Stage">{transferPreferenceLabel(deal.stage)}</td><td data-label="Expected commission">{amount(deal.expected_commission,deal.currency)}</td><td data-label="Next action">{dateLabel(deal.next_action_at,'Not scheduled')}</td></tr>)}
       </tbody></table>{!dealRows.length&&<div className={styles.empty}><span className={styles.emptyIcon}><Building2 size={25}/></span><p>No deals found</p></div>}</div>
     </section>}
     {tab==='overview'&&<p className={styles.footnote}>Confirmed player links are distinguished from provisional name matches. A link does not establish contract or registration status.</p>}

@@ -2,8 +2,8 @@
 
 Owner: Codex, requested by Jesse Edge on 23 October 2026.
 Status: active. The whole programme remains open.
-Current working branch: `codex/redream-daily-work-polish`, reviewed through replacement draft PR 282 targeting `main`. PR 281 is closed without merge. Earlier implementation and evidence remain in this branch; no new PR dependency chain is required.
-Current worktree: `/Users/jesseedge/DJM-Onboarding-intelligent-agency-pass-ci`.
+Current working branch: `codex/redream-connected-details` from main `608d503`. PR 282 merged on 30 October at `bd94871`. PR 281 is closed without merge.
+Current worktree: `/Users/jesseedge/.codex/worktrees/redream-connected-details/New project`.
 Baseline: merged production PR 250, `09831dadc94621fb43e9d56265c9bd2d4a8a2bcd`.
 
 ## Start here on every continuation
@@ -29,6 +29,14 @@ This plan is the persistent source of truth. Earlier audit/release notes remain 
 Report a validated-checklist percentage as validated/released rows divided by all 63 programme and UI checks, as requested by Jesse. Current formal acceptance is 2/63 (3%); this does not estimate how much code exists or substitute for product quality. A code commit, mocked provider test or desktop screenshot alone does not prove live integration, physical-device quality or programme completion. Final completion requires every applicable register and UI row accepted, with any exclusions explicitly resolved with the user.
 
 ## Current checkpoint
+
+- On 4 November Jesse shifted the design reference to the Athlivo-style work already merged for Dashboard, Clubs, Requests and Players. Continue from current main and preserve all 46 programme and 17 UI parent checks. The prior requirements prototype remains outside main and separate from this pass.
+- UI-04 / UI-06 / UI-08 / UI-09 / UI-10. The player detail now shows real open tasks and opens the exact Calendar task or deal. Verified club links, request records and contact employments hand off by saved record ID. The duplicate dossier actions are removed. Club requests use the recorded expiry, active state and commercial precision, with readable narrow cards. Player and club reads have bounded recovery. The staging candidate preserved the seven sampled responses and existing permissions, with four players' task IDs and totals checked before rollback. The hosted frontend acceptance and release gates remain open. See [connected detail pages](../../reviews/connected-detail-pages-20261104.md).
+- Next review the exact player-to-document handoff and the separate permissions for player files and agency drafts. Retain the current shortlist, role, device and independent-agency acceptance work while reviewing the matching frontend and migration.
+
+### Earlier implementation and release notes
+
+The following entries describe the October checkpoints and their evidence. The current branch and hosted database baselines above take precedence over dated deployment and review statuses.
 
 - 30 October 2026, UX-01/REL-01: An opt-in, read-only unified Opportunities Overview is prepared as a separate review branch. It groups only canonically linked player pursuits beneath club requests, retains separate deal identities, uses existing authorised readers and deep links, and never infers club interest or fees. Six focused projection tests and an opt-in integration contract have been added. Full CI, host/mobile/actual-role acceptance, performance and release remain open. Classic Needs, Player opportunities and Live deals stay unchanged; no database, provider, migration, production or staging alias change.
 

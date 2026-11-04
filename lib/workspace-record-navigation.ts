@@ -1,6 +1,11 @@
 import { UUID_PATTERN } from "./entity-context.ts";
 type RecordRequest = { kind: "player" | "deal"; entityId: string };
 type IntelligenceRequest = RecordRequest & { key: string; title: string; context?: string | null };
+
+export function workspaceClubHref(basePath: string, organisationId: unknown): string | null {
+  if (typeof organisationId !== 'string' || !UUID_PATTERN.test(organisationId)) return null;
+  return basePath + '?view=network&network=clubs&clubsv2=1&club=' + encodeURIComponent(organisationId);
+}
 export function workspaceIntelligenceRequestFromQuery(query: string, current: IntelligenceRequest | null, canSeeDeals: boolean): IntelligenceRequest | null {
   const params = new URLSearchParams(query);
   const view = params.get('view');

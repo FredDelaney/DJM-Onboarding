@@ -43,6 +43,8 @@ await mkdir(marketingDir,{recursive:true});await cp(new URL('../tests/fixtures/p
   const state={screen:'',publicMode:'healthy',release:null,approved:false,taskDone:false,approvals:0,completions:0,failRelationships:false,recordWrites:0,clubLinked:false};
   const taskId='00000000-0000-4000-8000-000000000094',clubId='00000000-0000-4000-8000-000000000095';
   const dealA='00000000-0000-4000-8000-000000000096',dealB='00000000-0000-4000-8000-000000000097';
+  const clubNeedId='70000000-0000-4000-8000-000000000001';
+  const contactId='00000000-0000-4000-8000-000000000098';
   const dueAt=new Intl.DateTimeFormat('en-CA',{timeZone:'Europe/Rome',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date())+'T12:00:00Z';
   const receipt=captureId=>{const applied=state.screen==='complete'||state.approved;return {capture:{id:captureId,status:applied?'done':'needs_review',summary:'Example club update',transcript_text:'Example FC needs a central midfielder. Follow up today.'},actions:[{id:'action',action_type:'create_task',status:applied?'applied':'pending',evidence:'Follow up today',proposed_payload:{title:'Follow up with Example FC',owner_name:'Jesse',due_at:dueAt},resolved_payload:applied?{title:'Follow up with Example FC',organisation_id:clubId}:undefined,target_type:applied?'task':undefined,target_id:applied?taskId:undefined,undo_supported:true}]};};
   const context=await browser.newContext({viewport:{width:390,height:844},timezoneId:'Europe/Rome'});
@@ -74,8 +76,28 @@ await mkdir(marketingDir,{recursive:true});await cp(new URL('../tests/fixtures/p
     else if(body.action==='tenants')data={tenants:[{tenant_id:'00000000-0000-0000-0000-000000000081',slug:'qa-platform-polish',role:'owner',display_name:'Example Agency'}]};
     else if(body.action==='players_workspace')data={players:{items:[{player_id:'player',identity:{name:'Example Player',current_club:'Example FC',primary_position:'Centre back'},service:{}}],total:1,has_more:false}};
     else if(body.action==='home_focus')data={home:{attention:{confirm:state.approved&&!state.taskDone?[{command_id:'capture-follow-up',source_type:'task',source_id:taskId,title:'Follow up with Example FC',due_at:dueAt,owner_name:'Jesse',priority_score:99,actionability:{mode:'one_tap',evidence_gate:'ready',cta:'Complete follow-up'}}]:[],judgement:[{command_id:'example-follow-up',source_type:'task',source_id:'60000000-0000-4000-8000-000000000001',title:'Confirm the trial dates',why_now:'The club is waiting for availability.',recommended_action:'Agree a week with the sporting director.',owner_name:'Jesse',priority_score:90},{command_id:'example-player',source_type:'task',source_id:'60000000-0000-4000-8000-000000000002',title:'Review the club shortlist',why_now:'Your player has new options to consider.',recommended_action:'Choose the two strongest routes.',owner_name:'Dapo',priority_score:80}]}}};
-    else if(body.action==='club_account')data={club:{club:{id:clubId,name:'Example FC',country:'NZ'},summary:{},people:[],needs:[],demand:{items:[{club_need_id:'70000000-0000-4000-8000-000000000001',position:'Centre-back',status:'open'},{club_need_id:'70000000-0000-4000-8000-000000000002',position:'Striker',status:'confirmed'},{club_need_id:'70000000-0000-4000-8000-000000000003',position:'Winger',status:'closed'}]},commercial:{deals:[{deal_room_id:dealB,title:'Example transfer B',stage:'open'}]}}};
-    else if(body.action==='club_reference_people')data={people:{players:state.clubLinked?[{id:'00000000-0000-4000-8000-000000000089',name:'Example Player',position:'Centre back',verified_link:true}]:[],contacts:[],can_view_contacts:true,can_link_players:true,player_count_basis:'verified_and_name_fallback'}};
+    else if(body.action==='club_account')data={club:{
+      club:{id:clubId,name:'Example FC',country:'NZ'},summary:{},people:[],needs:[],
+      demand:{items:[
+        {club_need_id:clubNeedId,position:'Centre-back',status:'active',expires_at:'2099-06-30T12:00:00Z',transfer_budget:'5000.50'},
+        {club_need_id:'70000000-0000-4000-8000-000000000002',position:'Striker',status:'active',expires_at:'2020-06-30T12:00:00Z'},
+        {club_need_id:'70000000-0000-4000-8000-000000000003',position:'Winger',status:'closed'},
+      ]},
+      commercial:{deals:[{deal_room_id:dealB,title:'Example transfer B',stage:'open'}]},
+    }};
+    else if(body.action==='workspace_need_record'&&body.club_need_id===clubNeedId)data={record:{available:true,item:{
+      club_need_id:clubNeedId,club:{organisation_id:clubId,name:'Example FC'},
+      need:{title:'Centre-back',position:'Centre-back',status:'active',expires_at:'2099-06-30T12:00:00Z'},
+      candidate_coverage:{recorded_candidates:0,candidates:[]},
+    }}};
+    else if(body.action==='player_workspace'&&state.clubLinked)data={player:{
+      tenant_id:'00000000-0000-4000-8000-000000000081',
+      identity:{id:body.player_id,name:'Example Player',current_club:'Example FC',primary_position:'Centre back'},
+      current_club_link:{organisation_id:clubId,name:'Example FC',country:'NZ'},
+      open_tasks:{total:1,items:[{id:taskId,title:'Follow up with Example FC',due_at:dueAt}]},
+      deals:[{id:dealB,title:'Example transfer B',club_name:'Example FC',stage:'qualifying',status:'active'}],
+    }};
+    else if(body.action==='club_reference_people')data={people:{players:state.clubLinked?[{id:'00000000-0000-4000-8000-000000000089',name:'Example Player',position:'Centre back',verified_link:true}]:[],contacts:[{id:contactId,name:'Example Director',role:'Sporting director'}],can_view_contacts:true,can_link_players:true,player_count_basis:'verified_and_name_fallback'}};
     else if(body.action==='club_link_candidates')data={candidates:{items:state.clubLinked?[]:[{id:'00000000-0000-4000-8000-000000000089',name:'Example Player',current_club:'Former FC',can_link:true,linked_club_id:null}]}};
     else if(body.action==='club_link_player'){state.clubLinked=true;data={linked:{linked:true,player_id:'00000000-0000-4000-8000-000000000089',organisation_id:clubId}};}
     else if(body.action==='clubs_directory')data={directory:{items:[{organisation_id:clubId,name:'Example FC',country:'New Zealand',city:'Auckland',league_name:'National League',player_count:2,request_count:1,deal_count:1,contact_count:0,source_id:null},{organisation_id:dealA,name:'Wellington Phoenix II',country:'New Zealand',city:'Wellington',league_name:'National League - Central',player_count:1,request_count:0,deal_count:0,contact_count:0,source_id:null},{organisation_id:dealB,name:'Christchurch United',country:'New Zealand',city:'Christchurch',league_name:'National League - Southern',player_count:1,request_count:2,deal_count:0,contact_count:0,source_id:null}],total:3,has_more:false}};
@@ -102,8 +124,13 @@ await mkdir(marketingDir,{recursive:true});await cp(new URL('../tests/fixtures/p
     else if(path.endsWith('/redream_entity_patch')){state.recordWrites++;data={ok:true,id:body.p_entity_id,entity_type:body.p_entity_type};}
     else if(path.endsWith('/redream_autopilot_relationships')){
      if(state.failRelationships){status=503;data={message:'The list is temporarily unavailable'};}
-     else data={accounts:{clubs:[{organisation_id:clubId,name:'Example FC',country:'NZ'}]},contacts:{items:[{person_id:'contact',person:{full_name:'Example Director'},employment:{organisation_name:'Example FC'}}]}};
+     else data={accounts:{clubs:[{organisation_id:clubId,name:'Example FC',country:'NZ'}]},contacts:{items:[{person_id:contactId,person:{full_name:'Example Director'},employment:{organisation_id:clubId,organisation_name:'Example FC'}}]}};
     }
+    else if(path.endsWith('/redream_relationship_person')&&body.p_person_id===contactId)data={
+      person:{id:contactId,full_name:'Example Director'},
+      employment:{organisation_id:clubId,organisation_name:'Example FC',role_title:'Sporting director'},
+      reach:{},
+    };
     else if(path.endsWith('/redream_autopilot_market'))data={demand:{items:[]},pursuits:{items:[]}};
     else if(path.endsWith('/redream_autopilot_deals'))data={portfolio:{deals:[{deal_room_id:dealA,title:'Example transfer A',stage:'open'},{deal_room_id:dealB,title:'Example transfer B',stage:'open'}]}};
     else data={items:[],accounts:{clubs:[]},contacts:{items:[]}};
@@ -142,13 +169,45 @@ await mkdir(marketingDir,{recursive:true});await cp(new URL('../tests/fixtures/p
       await page.getByRole('button',{name:'Confirm club link',exact:true}).click();
       await page.getByText('Club link confirmed',{exact:true}).waitFor();
       console.log('CLUB VERIFIED LINK BROWSER PASS');
-      await page.getByRole('button',{name:'Back to Clubs',exact:true}).click();
-      await page.getByRole('region',{name:'Clubs',exact:true}).waitFor();
-      await page.getByRole('region',{name:'Clubs',exact:true}).getByRole('button',{name:/Example FC/}).click();
+      await page.getByRole('button',{name:/Example Player.*Club link confirmed/}).click();
+      const player=page.getByRole('region',{name:'Example Player player workspace'});
+      await player.getByRole('link',{name:'Example FC',exact:true}).waitFor();
+      await player.getByRole('button',{name:'Tasks',exact:true}).click();
+      await player.getByRole('link',{name:'Open task: Follow up with Example FC',exact:true}).click();
+      const task=page.getByRole('dialog',{name:'Update task',exact:true});
+      await task.getByText('Follow up with Example FC',{exact:true}).waitFor();
+      assert.equal(new URL(page.url()).searchParams.get('task'),taskId);
+      await task.getByRole('button',{name:'Close task editor',exact:true}).click();
+      assert.equal(state.completions,0);
+      await page.goBack();
+      await player.getByRole('button',{name:'Deals',exact:true}).click();
+      await player.getByRole('link',{name:'Open deal: Example transfer B',exact:true}).click();
+      await page.getByRole('heading',{name:'Example transfer B',exact:true}).waitFor();
+      assert.equal(new URL(page.url()).searchParams.get('record'),dealB);
+      await page.goBack();
+      await player.getByRole('button',{name:'Profile',exact:true}).click();
+      await player.getByRole('link',{name:'Example FC',exact:true}).click();
+      const detail=page.getByRole('region',{name:'Club details for Example FC',exact:true});
+      await detail.getByRole('heading',{name:'Example FC',exact:true,level:1}).waitFor();
+      await detail.getByRole('button',{name:/Example Director Sporting director/}).click();
+      await page.getByRole('button',{name:'Back to Contacts',exact:true}).waitFor();
+      assert.equal(new URL(page.url()).searchParams.get('person'),contactId);
+      await page.getByRole('link',{name:'Open club: Example FC',exact:true}).click();
+      await detail.getByRole('heading',{name:'Example FC',exact:true,level:1}).waitFor();
       await page.getByRole('navigation',{name:'Club sections'}).getByRole('button',{name:'Requests',exact:true}).click();
-      await page.getByRole('cell',{name:'Centre-back',exact:true}).click();
-      await page.waitForURL(href=>href.searchParams.get('view')==='opportunities'&&href.searchParams.get('record')==='70000000-0000-4000-8000-000000000001',{timeout:8000});
-      console.log('CLUB TO MARKET BROWSER PASS');
+      const active=detail.getByRole('button',{name:'Open request: Centre-back',exact:true});
+      await active.waitFor();
+      assert.equal(await detail.getByRole('button',{name:'Open request: Striker',exact:true}).count(),0);
+      await detail.getByRole('combobox',{name:'Request status'}).selectOption('all');
+      await detail.getByRole('button',{name:'Open request: Striker',exact:true}).waitFor();
+      await detail.getByText('Currency unknown 5,000.5',{exact:true}).waitFor();
+      await detail.getByText('30 Jun 2099',{exact:true}).waitFor();
+      if(process.env.PLATFORM_POLISH_SCREENSHOT_DIR)await page.screenshot({path:join(process.env.PLATFORM_POLISH_SCREENSHOT_DIR,'club-request-detail-390.png')});
+      await active.press('Enter');
+      await page.waitForURL(href=>href.searchParams.get('view')==='opportunities'&&href.searchParams.get('record')===clubNeedId,{timeout:8000});
+      await page.getByRole('link',{name:'Open club profile',exact:true}).click();
+      await detail.getByRole('heading',{name:'Example FC',exact:true,level:1}).waitFor();
+      console.log('EXACT CLUB, PLAYER, CALENDAR, DEAL, CONTACT AND REQUEST HANDOFFS PASS');
       await page.goto(url);
       await page.getByRole('region',{name:'Clubs',exact:true}).waitFor();
     }
@@ -344,11 +403,11 @@ await mkdir(marketingDir,{recursive:true});await cp(new URL('../tests/fixtures/p
       await page.getByRole('button',{name:'Example FC',exact:true}).first().click();
       await profile.waitFor();
       await profile.getByRole('button',{name:'Requests',exact:true}).click();
-      await profile.getByRole('cell',{name:'Centre-back',exact:true}).waitFor();
-      await profile.getByRole('cell',{name:'Striker',exact:true}).waitFor();
-      assert.equal(await profile.getByRole('cell',{name:'Winger',exact:true}).count(),0,'Closed requests are excluded from Active');
+      await profile.getByRole('button',{name:'Open request: Centre-back',exact:true}).waitFor();
+      assert.equal(await profile.getByRole('button',{name:'Open request: Striker',exact:true}).count(),0,'Expired requests are excluded from Active');
+      assert.equal(await profile.getByRole('button',{name:'Open request: Winger',exact:true}).count(),0,'Closed requests are excluded from Active');
       await profile.getByLabel('Request status',{exact:true}).selectOption('all');
-      await profile.getByRole('cell',{name:'Winger',exact:true}).waitFor();
+      await profile.getByRole('button',{name:'Open request: Winger',exact:true}).waitFor();
       await profile.getByRole('button',{name:'Overview',exact:true}).click();
       const createFromClub=async (label,dialogName,fieldName)=>{
         await profile.getByRole('button',{name:'Add to club',exact:true}).click();

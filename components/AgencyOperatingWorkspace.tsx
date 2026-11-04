@@ -3,7 +3,6 @@
 import {formatCommercialAmount} from '@/lib/club-need-brief';
 
 import { isolateElements, lockPageScroll } from '@/lib/page-scroll-lock';
-import WorkResponsibilityControl from './WorkResponsibilityControl';
 import {workRefFor,homeWorkRefFor,workHref,readAssignedWorkPages} from '@/lib/work-responsibility';
 import {homeRelevanceReference} from '@/lib/home-relevance';
 import {useHomeRelevance} from './useHomeRelevance';
@@ -98,6 +97,7 @@ const AgencyNetworkWorkspace = dynamic(() => import('@/components/AgencyNetworkW
 const AgencyClubsReference = dynamic(() => import('@/components/AgencyClubsReference'), {loading: () => <WorkspaceSectionLoading label="clubs"/>});
 const PeopleViewSwitcher = dynamic(() => import('./PeopleViewSwitcher'));
 const AgencyOwnershipChip = dynamic(() => import('@/components/AgencyOwnershipChip'));
+const WorkResponsibilityControl = dynamic(() => import('./WorkResponsibilityControl'));
 const AgencyOpportunitiesWorkspace = dynamic(() => import('@/components/AgencyOpportunitiesWorkspace'), {loading: () => <WorkspaceSectionLoading label="opportunities"/>});
 const AgencyCalendarWorkspace = dynamic(() => import('@/components/AgencyCalendarWorkspace'), {loading: () => <WorkspaceSectionLoading label="calendar"/>});
 const WorkspaceSearch = dynamic(() => import('@/components/WorkspaceSearch'));

@@ -25,7 +25,11 @@ export default function Page() {
   const [action, setAction] = useState<AgencyActionRequest | null>(null);
   const [revision, setRevision] = useState(0);
   const invoke = useCallback(async <T,>(name: string, body: any = {}): Promise<T> => {
-    if (name === 'player_workspace') return { player: { identity: { ...players.find(p => p.player_id === body.player_id)?.identity }, service: {} } } as T;
+    if (name === 'player_workspace') {
+      const record=players.find(p=>p.player_id===body.player_id);
+      if(!record)throw new Error('Player not found');
+      return {player:{identity:{...record.identity,id:record.player_id},service:record.service,open_tasks:{items:[],total:0}}} as T;
+    }
     return { bundle: null } as T;
   }, []);
   const rpc = useCallback(async <T,>(name: string, args: any = {}): Promise<T> => {

@@ -86,7 +86,20 @@ export default function Page(){
   if(action==='recruitment_board')return {recruitment:data.recruitment};
   if(action==='player_data_status')return {job:null};
   if(action==='player_context_status')return {review:null};
-  if(action==='player_workspace')return {player:{identity:data.directory.items.find(p=>p.player_id===body.player_id)?.identity||{},service:{},agreements:[],documents:[],opportunities:[],deals:[],activity:[]}};
+  if(action==='player_workspace'){
+   if(fixtureRole!=='owner')throw new Error('Administrator access required');
+   const identity=data.directory.items.find(p=>p.player_id===body.player_id)?.identity;
+   if(scenario==='player-record-recovery'&&!(window as any).qaPlayerReadRecovered)return {player:{identity:{id:'different-player',name:'Wrong player'}}};
+   const linked=body.player_id==='qa-player-0'&&scenario!=='player-connections-legacy';
+   return {player:{
+    identity:{...identity,id:body.player_id},service:{},agreements:[],documents:[],opportunities:[],activity:[],
+    ...(linked?{
+     current_club_link:{organisation_id:'30000000-0000-4000-8000-000000000011',name:'Verified Club',country:'NZ'},
+     open_tasks:{total:1,items:[{id:'50000000-0000-4000-8000-000000000011',title:'Review full-match footage',due_at:null}]},
+    }:{}),
+    deals:linked?[{id:'60000000-0000-4000-8000-000000000011',title:'Summer transfer discussion',club_name:'Verified Club',stage:'discussion',status:'active'}]:[],
+   }};
+  }
   if((action==='player_profile_core'||action==='player_profile')&&scenario.startsWith('populated'))return {profile:{
    player:{id:body.player_id,first_name:'José',last_name:'Silva',date_of_birth:'2002-04-19',primary_position:'Centre back',current_club:'Wellington Harbour Football Club',current_country:'New Zealand',current_league:'National League Championship',current_season_label:'2026/27',nationalities:['New Zealand','Portugal'],contract_status:'under_contract',contract_expiry:'2027-06-30',verified_at:'2026-10-10T12:00:00Z',verification_status:'verified',transfermarkt_url:'https://example.test/player',wyscout_url:'https://example.test/scouting'},
    career:Array.from({length:6},(_,i)=>({id:'season-'+i,season_label:i===0?'2026/27':String(2026-i)+'/'+String(27-i),club_name:i===0?'Wellington Harbour Football Club':'Harbour Development Football Club',league:'National League Championship',country:'New Zealand',appearances:24-i,starts:22-i,minutes:1980-i*110,goals:2,assists:0,source_name:'Official competition match reports',source_url:'https://example.test/competition',source_reviewed_at:'2026-10-10T12:00:00Z',updated_at:'2026-10-10T12:00:00Z'})),
@@ -143,7 +156,7 @@ export default function Page(){
    {['players','network'].includes(view)?<PeopleViewSwitcher basePath={base} view={view} onNavigate={navigateHref}/>:null}
    <div style={{display:'flex',gap:10,marginBottom:16}}><button type="button" data-qa-switch onClick={()=>{const next=new URLSearchParams(params.toString());next.set('user',user==='a'?'b':'a');window.history.replaceState(null,'',base+'?'+next);}}>Switch account</button><button type="button" data-qa-dialog onClick={()=>setOtherDialog(true)}>Open other dialog</button></div>
    <div className={params.get('profile')==='1'?styles.viewStage:undefined} key={scope+':'+view+':'+playerId+':'+(params.get('tab')||'')}>
-    {view==='players'?(params.get('profile')==='1'&&playerId?<AgencyPlayerProfile playerId={playerId} cacheScope={scope} backHref={base+'?view=players'} workHref={base+'?view=players&player='+playerId} role={fixtureRole} fallbackAgency={{}} invoke={invoke as any} onOpenAction={()=>{}} onOpenIntelligence={()=>{}}/>:<AgencyPlayersWorkspace stateScope={scope} data={pageData} basePath={base} invoke={invoke as any} rpc={rpc as any} onRefresh={refresh} onLoadMore={loadMore} onOpenAction={()=>{}}/>):null}
+    {view==='players'?(params.get('profile')==='1'&&playerId?<AgencyPlayerProfile playerId={playerId} cacheScope={scope} backHref={base+'?view=players'} workHref={base+'?view=players&player='+playerId} role={fixtureRole} fallbackAgency={{}} invoke={invoke as any} onOpenAction={()=>{}} onOpenIntelligence={()=>{}}/>:<AgencyPlayersWorkspace stateScope={scope} data={pageData} basePath={base} canManageRecords={fixtureRole==='owner'} invoke={invoke as any} rpc={rpc as any} onRefresh={refresh} onLoadMore={loadMore} onOpenAction={()=>{}}/>):null}
     {view==='network'?<AgencyNetworkWorkspace stateScope={scope} data={data} basePath={base} rpc={rpc as any} onRefresh={refresh} onCreate={()=>{}} onOpenAction={()=>{}} onOpenClubAccount={setClubRequest}/>:null}
     {view==='opportunities'?<AgencyOpportunitiesWorkspace invoke={invoke as any} data={{...data,opportunity_reads:{market:'ready',deals:'ready'}}} basePath={base} rpc={rpc as any} onRetry={()=>{}} onRefresh={refresh} onOpenAction={setActionRequest} onOpenPursuit={request=>{(window as any).qaOpenedOpportunity=request;}} onOpenIntelligence={setDealRequest}/>:null}
     {view==='home'||view==='calendar'?<h1>{view==='home'?'Home':'Calendar'}</h1>:null}

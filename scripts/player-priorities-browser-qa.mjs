@@ -89,7 +89,7 @@ try{
 
  player=await open('Quiet Player');
  await tabs(player).getByRole('button',{name:'Tasks'}).click();
- await player.getByText('No next action recorded',{exact:true}).first().waitFor();
+ await player.getByText('No open linked tasks',{exact:true}).waitFor();
  await back();
 
  for(const width of [320,390,768,1440]){

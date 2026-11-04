@@ -1,6 +1,6 @@
 'use client';
 
-import {ArrowLeft, ArrowRight, CalendarDays, Check, ChevronRight, CircleAlert, ClipboardCheck, ChevronDown, FileText, Link2, LoaderCircle, Mail, Pencil, Plus, RefreshCw, ShieldCheck, Sparkles, Target, Users, X} from 'lucide-react';
+import {ArrowLeft, ArrowRight, CalendarDays, Check, ChevronRight, CircleAlert, ClipboardCheck, ChevronDown, FileText, LoaderCircle, Pencil, RefreshCw, ShieldCheck, Sparkles, Target, Users, X} from 'lucide-react';
 import {useCallback, useEffect, useRef, useState} from 'react';
 import Link from 'next/link';
 import ClubIdentityMark,{CountryFlag} from './ClubIdentityMark';
@@ -13,9 +13,12 @@ import PlayerSalaryTerms from './PlayerSalaryTerms';
 import RecordContactActions from './RecordContactActions';
 import {friendlyError,relativeDate} from '@/lib/platform-client';
 import {PLAYER_AGENCY_STATUSES,playerAgencyStatus,playerAgencyStatusLabel,type PlayerAgencyStatus} from '@/lib/player-agency-status';
-import {prefetchPlayerProfile,invalidatePlayerProfile} from '@/lib/player-profile-cache';
+import {invalidatePlayerProfile} from '@/lib/player-profile-cache';
+import {readWithDeadline} from '@/lib/read-with-deadline';
 import {writeWithDeadline} from '@/lib/write-with-deadline';
 import {confirmsEntityAction} from '@/lib/entity-action-result';
+import {UUID_PATTERN} from '@/lib/entity-context';
+import {workspaceClubHref, workspaceIntelligenceHref} from '@/lib/workspace-record-navigation';
 import type {AgencyActionRequest} from '@/components/AgencyActionDrawer';
 import styles from './PlayerExperience.module.css';
 
@@ -23,6 +26,7 @@ type Invoke=<T,>(action:string,body?:Record<string,unknown>)=>Promise<T>;
 type Rpc=<T,>(name:string,args?:Record<string,unknown>,signal?:AbortSignal)=>Promise<T>;
 type Props={playerId:string;summary?:any;cacheScope:string;canManageRecords:boolean;basePath:string;invoke:Invoke;rpc:Rpc;onRefresh:()=>Promise<void>;onClose:()=>void;onOpenAction:(request:AgencyActionRequest)=>void};
 type Tab='profile'|'tasks'|'updates'|'deals'|'documents'|'career';
+type LinkedTask = {id: string; title: string; due_at: string | null};
 type EditKey='primary_position'|'current_club'|'current_country'|'contract_expiry';
 const editFields:{key:EditKey;label:string;type:'text'|'date'}[]=[
  {key:'primary_position',label:'Position',type:'text'},{key:'current_club',label:'Current club',type:'text'},
@@ -46,9 +50,12 @@ function ContractCard({title,expiry,empty='No expiry recorded'}:{title:string;ex
 function EmptyPanel({icon:Icon,title,description}:{icon:typeof Users;title:string;description:string}){return <div className={styles.workEmpty}><span><Icon size={22}/></span><h3>{title}</h3><p>{description}</p></div>;}
 
 export default function PlayerExperienceDetail({playerId,summary,cacheScope,canManageRecords,basePath,invoke,rpc,onRefresh,onClose,onOpenAction}:Props){
- const initial=summary?{identity:summary.identity||{},service:summary.service||{},profile:summary.profile||{},agreements:[],documents:[],opportunities:[],deals:[],activity:[],career_alignment:{}}:null;
+ const initial=summary?.identity ? {identity:summary.identity} : null;
+ const restricted=!canManageRecords||Boolean(summary?.access?.restricted);
+ const hasSummary=Boolean(initial);
+ const tenantId=cacheScope.split(':',1)[0];
  const [detail,setDetail]=useState<any>(initial);
- const [loading,setLoading]=useState(!initial);
+ const [loading,setLoading]=useState(!restricted||!initial);
  const [fullDetailReady,setFullDetailReady]=useState(false);
  const [error,setError]=useState('');
  const [tab,setTab]=useState<Tab>('profile');
@@ -66,25 +73,42 @@ export default function PlayerExperienceDetail({playerId,summary,cacheScope,canM
  const [savedMessage,setSavedMessage]=useState('');
  const mutation=useRef(false);
  const alive=useRef(true);
- const request=useRef(0);
+ const request=useRef<AbortController|null>(null);
  const reload=useCallback(async()=>{
-  const sequence=++request.current;setError('');
-  try{const response=await invoke<any>('player_workspace',{player_id:playerId});if(alive.current&&sequence===request.current){
-    if(!response?.player?.identity){
-     setFullDetailReady(false);
-     if(!summary?.identity)throw new Error('The player record could not be confirmed.');
-     setError('Full details are unavailable. Showing the latest roster summary. Retry before editing.');
-    }else{
-     setDetail({...response.player,identity:{...(summary?.identity||{}),...response.player.identity},service:{...(summary?.service||{}),...(response.player.service||{})}});
-     setFullDetailReady(true);
-     return true;
-    }
-   }}
-  catch(cause){if(alive.current&&sequence===request.current)setError(friendlyError(cause));}
-  finally{if(alive.current&&sequence===request.current)setLoading(false);}
+  // The roster already contains the allowed identity for an assigned player.
+  if(restricted&&hasSummary)return true;
+  request.current?.abort();
+  const controller=new AbortController();
+  request.current=controller;
+  const current=()=>alive.current&&request.current===controller&&!controller.signal.aborted;
+  setLoading(true);
+  setError('');
+  try{
+   const action=restricted?'player_profile_core':'player_workspace';
+   const response=await readWithDeadline(invoke<any>(action,{player_id:playerId}),12000,controller.signal);
+   if(!current())return false;
+   if(restricted){
+    const player=response?.profile?.player;
+    if(player?.id!==playerId||response?.profile?.access?.restricted!==true)throw new Error('The player record could not be confirmed.');
+    setDetail({identity:{...player,name:player.preferred_name||[player.first_name,player.last_name].filter(Boolean).join(' ')}});
+   }else{
+    const player=response?.player;
+    if(player?.identity?.id!==playerId||(UUID_PATTERN.test(tenantId)&&player.tenant_id!==tenantId))throw new Error('The player record could not be confirmed.');
+    setDetail(player);
+    setFullDetailReady(true);
+   }
+   return true;
+  }catch(cause){
+   if(current()){
+    setFullDetailReady(false);
+    setError(friendlyError(cause));
+   }
+  }finally{
+   if(current())setLoading(false);
+  }
   return false;
- },[invoke,playerId,summary]);
- useEffect(()=>{alive.current=true;void prefetchPlayerProfile(playerId,invoke,cacheScope).catch(()=>undefined);void reload();return()=>{alive.current=false;request.current++;};},[playerId,invoke,cacheScope,reload]);
+ },[invoke,playerId,tenantId,restricted,hasSummary]);
+ useEffect(()=>{alive.current=true;void reload();return()=>{alive.current=false;request.current?.abort();};},[reload]);
  const identity=detail?.identity||{},service=detail?.service||{},career=detail?.career_alignment||{};
  const name=raw(identity.name)||'Player';
  const agreements=Array.isArray(detail?.agreements)?detail.agreements:[];
@@ -93,9 +117,15 @@ export default function PlayerExperienceDetail({playerId,summary,cacheScope,canM
  const deals=Array.isArray(detail?.deals)?detail.deals:[];
  const activity=Array.isArray(detail?.activity)?detail.activity:[];
  const representation=agreements.find((a:any)=>a?.status==='active'&&['representation','mandate','placement_authorisation'].includes(raw(a.agreement_type)));
- const restricted=Boolean(summary?.access?.restricted||detail?.access?.restricted);
- const canEdit=fullDetailReady&&canManageRecords&&!restricted;
+ const canEdit=fullDetailReady&&!restricted;
  const playerProfileUrl=basePath+'?view=players&player='+encodeURIComponent(playerId)+'&profile=1';
+ const calendarUrl=basePath+'?view=calendar';
+ const clubHref=raw(detail?.current_club_link?.name) ? workspaceClubHref(basePath,detail.current_club_link.organisation_id) : null;
+ const taskItems=detail?.open_tasks?.items;
+ const linkedTasks:LinkedTask[]|null=Array.isArray(taskItems)&&taskItems.every(task=>
+  typeof task?.id==='string'&&UUID_PATTERN.test(task.id)&&typeof task.title==='string'&&
+  (task.due_at===null||typeof task.due_at==='string')
+ ) ? taskItems : null;
  const mainNext=identity.next_action||service?.next_service_move?.instruction||service?.next_control_fix?.instruction;
  const nationalities=Array.isArray(identity.nationalities)?identity.nationalities.filter(Boolean):[];
  const age=ageFrom(identity.date_of_birth);
@@ -126,7 +156,7 @@ export default function PlayerExperienceDetail({playerId,summary,cacheScope,canM
    if(outcome.status==='unknown'){setSaveError('The save could not be confirmed. It may still complete. Please reload the latest details before trying again.');return;}
    if('error' in outcome.result){setSaveError(friendlyError(outcome.result.error));return;}
    if(!confirmsEntityAction(outcome.result.value,'edit','player',playerId,false)){setSaveError('The save could not be confirmed. Reload before editing again.');return;}
-   await Promise.all([reload(),onRefresh()]);
+   await Promise.allSettled([reload(),onRefresh()]);
    if(!alive.current)return;
    setEditing(false);setSavedMessage('Player details saved.');
   }catch(cause){if(alive.current)setSaveError(friendlyError(cause));}
@@ -186,8 +216,8 @@ export default function PlayerExperienceDetail({playerId,summary,cacheScope,canM
  };
  const openEdit=()=>{if(statusUnconfirmed)return;setStatusOpen(false);setDraft(pickDraft(identity));setAgencyStatusDraft(playerAgencyStatus(identity.agency_status));setDisplayName(name);setSaveError('');setSavedMessage('');setEditing(true);};
  return <div className={styles.playerSurface} role="region" aria-label={name+' player workspace'}>
-  <div className={styles.playerPageHeader}><button type="button" className={styles.backLink} onClick={onClose} aria-label="Back to Players"><ArrowLeft size={17}/><span>Players</span></button><div className={styles.playerTopActions}><Link href={playerProfileUrl}><Sparkles size={16}/> Player Profile</Link>{canEdit?<EntityActionsMenu scope={cacheScope} kind="player" entityId={playerId} label={name} rpc={rpc} onChanged={async()=>{await onRefresh();await reload();}} fields={editFields.map(field=>({...field,value:identity[field.key]}))}/>:null}</div></div>
-  {loading?<div className={styles.loadState}><LoaderCircle size={22}/> Loading player...</div>:null}
+  <div className={styles.playerPageHeader}><button type="button" className={styles.backLink} onClick={onClose} aria-label="Back to Players"><ArrowLeft size={17}/><span>Players</span></button><div className={styles.playerTopActions}>{detail?<Link href={playerProfileUrl}><Sparkles size={16}/> Player Profile</Link>:null}{canEdit?<EntityActionsMenu scope={cacheScope} kind="player" entityId={playerId} label={name} rpc={rpc} onChanged={async()=>{await Promise.allSettled([onRefresh(),reload()]);}} fields={editFields.map(field=>({...field,value:identity[field.key]}))}/>:null}</div></div>
+  {loading?<div className={styles.loadState} role="status"><LoaderCircle size={19}/> Loading player details...</div>:null}
   {error?<div className={styles.loadState} role="alert"><CircleAlert size={19}/>{error}<button type="button" onClick={()=>void reload()}>Retry</button></div>:null}
   {detail?<div className={styles.playerDetailGrid}>
    <aside className={styles.identityRail} aria-label="Player identity">
@@ -196,15 +226,14 @@ export default function PlayerExperienceDetail({playerId,summary,cacheScope,canM
      {canEdit?<button type="button" className={styles.identityEdit} aria-label="Edit player" onClick={openEdit} disabled={statusUnconfirmed||statusBusy}><Pencil size={17}/></button>:null}
     </div>
     <h1>{name}</h1>
-    <Link className={styles.insightsLink} href={playerProfileUrl}><Sparkles size={15}/> Player Profile</Link>
-    <div className={styles.identityContacts}>{canEdit?<RecordContactActions kind="player" recordId={playerId} name={name} scope={cacheScope} rpc={rpc}/>:null}</div>
+    {canEdit?<div className={styles.identityContacts}><RecordContactActions kind="player" recordId={playerId} name={name} scope={cacheScope} rpc={rpc}/></div>:null}
     <div className={styles.identityStats}>
      <div>
       <div className={styles.statusPickerAnchor}>
        {canEdit&&!editing?<button type="button" className={styles.statusPickerTrigger} aria-label={'Change status for '+name} aria-expanded={statusOpen} onClick={statusOpen?()=>{if(!statusBusy&&!statusUnconfirmed)setStatusOpen(false);}:openStatusPicker} disabled={statusBusy||saveBusy}>
         <span className={styles.statusChip} data-status={playerAgencyStatus(identity.agency_status)}>{playerAgencyStatusLabel(identity.agency_status)}</span>
         <ChevronDown size={13} aria-hidden="true"/>
-       </button>:<span className={styles.statusChip} data-status={playerAgencyStatus(identity.agency_status)}>{playerAgencyStatusLabel(identity.agency_status)}</span>}
+       </button>:identity.agency_status?<span className={styles.statusChip} data-status={playerAgencyStatus(identity.agency_status)}>{playerAgencyStatusLabel(identity.agency_status)}</span>:<strong>Not recorded</strong>}
        {canEdit&&!editing&&statusOpen?<div className={styles.statusPickerPopover} role="group" aria-label="Choose agency status">
         <p className={styles.statusPickerTitle}>Change agency status</p>
         <div className={styles.statusPickerChoices}>{PLAYER_AGENCY_STATUSES.map(option=><button type="button" key={option.value} className={styles.statusPickerChoice} aria-pressed={statusDraft===option.value} disabled={statusBusy||statusUnconfirmed} onClick={()=>setStatusDraft(option.value)}>
@@ -260,15 +289,22 @@ export default function PlayerExperienceDetail({playerId,summary,cacheScope,canM
       </div>
      </div>
      {saveError?<p role="alert" className={styles.editError}>{saveError}<button type="button" onClick={()=>void reload()} disabled={saveBusy}>Reload record</button></p>:null}
-     <div className={styles.editFooter}><button type="button" onClick={()=>setEditing(false)} disabled={saveBusy}>Cancel</button><button type="submit" disabled={saveBusy}>{saveBusy?<LoaderCircle size={17}/>:<Check size={17}/>} {saveBusy?'Saving...':'Done'}</button></div>
-    </form>:<>
+     <div className={styles.editFooter}><button type="button" onClick={()=>setEditing(false)} disabled={saveBusy}>Cancel</button><button type="submit" disabled={saveBusy||!canEdit}>{saveBusy?<LoaderCircle size={17}/>:<Check size={17}/>} {saveBusy?'Saving...':'Done'}</button></div>
+    </form>:fullDetailReady?<>
      <nav className={styles.detailTabs} aria-label="Player sections">{([['profile','Profile'],['tasks','Tasks'],['updates','Updates'],['deals','Deals']] as const).map(([key,label])=><button key={key} type="button" aria-current={tab===key?'page':undefined} onClick={()=>setTab(key)}>{label}</button>)}</nav>
      {savedMessage?<p role="status" className={styles.editSuccess}>{savedMessage}</p>:null}
      {tab==='profile'?<div className={styles.playerSection}>
       <h2>Club Information</h2>
       <div className={styles.profileInfoGrid}>
        <div className={styles.profileInfoColumn}>
-        <section className={styles.clubInfoCard}><ClubIdentityMark name={raw(identity.current_club)||'Club'} country={raw(identity.current_country)}/><div><strong>{identity.current_club||'No current club recorded'}</strong><span>{identity.current_league||'Current club'}</span></div>{canEdit?<button type="button" onClick={openEdit} aria-label="Edit club"><Pencil size={16}/></button>:null}</section>
+        <section className={styles.clubInfoCard}>
+         <ClubIdentityMark name={detail.current_club_link?.name||raw(identity.current_club)||'Club'} country={detail.current_club_link?.country||raw(identity.current_country)}/>
+         <div>
+          {clubHref?<Link className={styles.clubRecord} href={clubHref} prefetch={false}><strong>{detail.current_club_link.name}</strong><ChevronRight size={16} aria-hidden="true"/></Link>:<strong>{identity.current_club||'No current club recorded'}</strong>}
+          <span>{identity.current_league||(clubHref?'Verified club link':'Current club')}</span>
+         </div>
+         {canEdit?<button type="button" onClick={openEdit} aria-label="Edit club"><Pencil size={16}/></button>:null}
+        </section>
         <ContractCard title="Club Contract Expiry" expiry={identity.contract_expiry}/>
        </div>
        <section className={styles.nextCard}><div className={styles.cardLabel}><Target size={16}/> Next move</div><strong>{mainNext||'No next action recorded'}</strong><p>{identity.next_action_due?'Due '+relativeDate(identity.next_action_due):'Keep the next player action visible and up to date.'}</p>{mainNext&&!identity.next_action&&(service?.next_control_fix?.instruction||service?.next_service_move?.instruction)?<button type="button" onClick={nextAction}>Review next action <ArrowRight size={15}/></button>:<Link href={basePath+'?view=calendar'}>Open Calendar <ArrowRight size={15}/></Link>}</section>
@@ -289,21 +325,35 @@ export default function PlayerExperienceDetail({playerId,summary,cacheScope,canM
        </div>
        <div className={styles.quickLinks}>
         <button type="button" onClick={()=>setTab('documents')}><FileText size={21}/> Documents <span>{documents.length||''}</span><ChevronRight size={17}/></button>
-        <Link href={playerProfileUrl}><Link2 size={20}/> Player Profile <ChevronRight size={17}/></Link>
         <button type="button" onClick={()=>setTab('career')}><Target size={20}/> Career & terms <ChevronRight size={17}/></button>
        </div>
       </div>
      </div>:null}
-     {tab==='tasks'?<section className={styles.tabPanel}><div className={styles.sectionHeading}><div><h2>Tasks</h2><p>Actions and deadlines connected to {name}.</p></div><Link aria-label="Open calendar to add a task" href={basePath+'?view=calendar'} className={styles.roundAdd}><Plus size={19}/></Link></div>
-      {mainNext?<div className={styles.taskCard}><span className={styles.taskIcon}><ClipboardCheck size={18}/></span><div><strong>{mainNext}</strong><p>{identity.next_action_due?'Due '+relativeDate(identity.next_action_due):'No due date recorded'}</p></div>{identity.next_action&&!identity.next_action_due&&service?.next_control_fix?.instruction?<button type="button" aria-label={'Set due date for '+name} onClick={reviewDueDate}>Set due date <ArrowRight size={15}/></button>:!identity.next_action&&(service?.next_control_fix?.instruction||service?.next_service_move?.instruction)?<button type="button" onClick={nextAction}>Review <ArrowRight size={15}/></button>:null}</div>:<EmptyPanel icon={ClipboardCheck} title="No next action recorded" description="Open Calendar to manage tasks and deadlines for your players."/>}
+     {tab==='tasks'?<section className={styles.tabPanel}>
+      <div className={styles.sectionHeading}><div><h2>Tasks</h2><p>Open follow-ups linked to {name}.</p></div><Link className={styles.recordAction} href={calendarUrl}><CalendarDays size={16}/> Calendar</Link></div>
+      {linkedTasks===null?<p className={styles.relatedNotice}>Linked tasks are unavailable here. You can still review them in Calendar.</p>
+       :linkedTasks.length?<div className={styles.dealList}>{linkedTasks.map(task=><article key={task.id}>
+        <ClipboardCheck size={19} aria-hidden="true"/>
+        <div><strong>{task.title}</strong><span>{task.due_at?'Due '+relativeDate(task.due_at):'No due date recorded'}</span></div>
+        <Link className={styles.recordAction} prefetch={false} aria-label={'Open task: '+task.title} href={calendarUrl+'&work=task&task='+encodeURIComponent(task.id)}>Open <ChevronRight size={16}/></Link>
+       </article>)}</div>:<EmptyPanel icon={ClipboardCheck} title="No open linked tasks" description="Follow-ups linked to this player will appear here."/>}
+      {linkedTasks&&detail.open_tasks.total>linkedTasks.length?<p className={styles.relatedNotice}>Showing {linkedTasks.length} of {detail.open_tasks.total} open tasks.</p>:null}
+      {mainNext?<div className={styles.taskCard}><span className={styles.taskIcon}><Target size={18}/></span><div><span className={styles.nextLabel}>{identity.next_action?'Recorded next move':'Suggested next move'}</span><strong>{mainNext}</strong><p>{identity.next_action_due?'Due '+relativeDate(identity.next_action_due):'No due date recorded'}</p></div>{identity.next_action&&!identity.next_action_due&&service?.next_control_fix?.instruction?<button type="button" aria-label={'Set due date for '+name} onClick={reviewDueDate}>Set due date <ArrowRight size={15}/></button>:!identity.next_action&&(service?.next_control_fix?.instruction||service?.next_service_move?.instruction)?<button type="button" onClick={nextAction}>Review <ArrowRight size={15}/></button>:null}</div>:null}
      </section>:null}
      {tab==='updates'?<section className={styles.tabPanel}><div className={styles.sectionHeading}><div><h2>Updates</h2><p>Recorded activity and changes for {name}.</p></div><button type="button" title="Reload player activity" aria-label="Refresh activity" onClick={()=>void reload()}><RefreshCw size={17}/></button></div>
       {activity.length?<div className={styles.activityFeed}>{activity.map((item:any,index:number)=><article key={index}><span className={styles.activityDot}/><div><strong>{human(item.event_type||'Agency update')}</strong><p>{item.occurred_at?relativeDate(item.occurred_at):'Date unavailable'}</p></div></article>)}</div>:<EmptyPanel icon={Users} title="No updates yet" description="Activity from saved player actions will appear here automatically."/>}
      </section>:null}
-     {tab==='deals'?<section className={styles.tabPanel}><div className={styles.sectionHeading}><div><h2>Shortlisted & Pitched</h2><p>Clubs and opportunities linked to {name}.</p></div><Link aria-label="Open deals" href={basePath+'?view=opportunities&tab=deals'} className={styles.roundAdd}><Plus size={19}/></Link></div>
-      {deals.length?<div className={styles.dealList}>{deals.map((item:any,index:number)=><article key={item.id||index}><ClubIdentityMark name={raw(item.club_name)||'Club'}/><div><strong>{item.club_name||item.title||'Deal'}</strong><span>{item.next_action||'No next action recorded'}</span></div><small>{human(item.status||item.stage||'Recorded')}</small></article>)}</div>:<EmptyPanel icon={Target} title="No active deals recorded" description="Linked deal rooms will appear here when they are created."/>}
-      <div className={styles.sectionHeading}><div><h2>Potential</h2><p>Other club opportunities for this player.</p></div></div>
-      {opportunities.length?<div className={styles.dealList}>{opportunities.map((item:any,index:number)=><article key={item.id||index}><ClubIdentityMark name={raw(item.club_name)||'Club'} country={item.country}/><div><strong>{item.club_name||'Club opportunity'}</strong><span>{item.summary||item.next_action||'No description'}</span></div><small>{human(item.stage||'Recorded')}</small></article>)}</div>:<EmptyPanel icon={Target} title="No potential opportunities" description="Potential club matches and proposals will appear here."/>}
+     {tab==='deals'?<section className={styles.tabPanel}><div className={styles.sectionHeading}><div><h2>Deals</h2><p>Deal records linked to {name}.</p></div><Link className={styles.recordAction} href={basePath+'?view=opportunities&tab=deals'}>All deals</Link></div>
+      {deals.length?<div className={styles.dealList}>{deals.map((item:any,index:number)=>{
+       const href=workspaceIntelligenceHref(basePath,'',{kind:'deal',entityId:raw(item.id)});
+       const title=item.title||item.club_name||'Deal';
+       return <article key={item.id||index}><ClubIdentityMark name={raw(item.club_name)||'Club'}/>
+        <div><strong>{title}</strong><span>{[item.club_name!==title&&item.club_name,human(item.stage||item.status),item.next_action].filter(Boolean).join(' · ')}</span></div>
+        {href?<Link className={styles.recordAction} href={href} prefetch={false} aria-label={'Open deal: '+title}>Open <ChevronRight size={16}/></Link>:null}
+       </article>;
+      })}</div>:<EmptyPanel icon={Target} title="No linked deals" description="Deals recorded for this player will appear here."/>}
+      <div className={styles.sectionHeading}><div><h2>Recorded opportunities</h2><p>Other club interest recorded for this player.</p></div></div>
+      {opportunities.length?<div className={styles.dealList}>{opportunities.map((item:any,index:number)=><article key={item.id||index}><ClubIdentityMark name={raw(item.club_name)||'Club'} country={item.country}/><div><strong>{item.club_name||'Club opportunity'}</strong><span>{item.summary||item.next_action||'No description'}</span></div><small>{human(item.stage||'Recorded')}</small></article>)}</div>:<EmptyPanel icon={Target} title="No other opportunities recorded" description="Other recorded club interest will appear here."/>}
      </section>:null}
      {tab==='documents'?<section className={styles.tabPanel}><div className={styles.sectionHeading}><div><h2>Documents</h2><p>Player and agency documents.</p></div><button type="button" onClick={()=>setTab('profile')} aria-label="Return to profile"><X size={18}/></button></div>
       {documents.length?<div className={styles.dealList}>{documents.map((item:any,index:number)=><article key={item.id||index}><FileText size={18}/><div><strong>{item.title||'Player document'}</strong><span>{human(item.document_type||'Document')}</span></div><small>{item.expires_at?'Expires '+dateText(item.expires_at):'No expiry'}</small></article>)}</div>:<EmptyPanel icon={FileText} title="No documents yet" description="Player documents will appear here when recorded in the agency."/>}
@@ -312,7 +362,7 @@ export default function PlayerExperienceDetail({playerId,summary,cacheScope,canM
       <section className={styles.contractCard}><div className={styles.cardLabel}><Target size={16}/> Career objective</div><strong>{career?.strategy?.objective||'No career objective recorded'}</strong><p>{career?.next_strategy_action?.instruction||'No next strategy action recorded.'}</p></section>
       {canEdit?<PlayerSalaryTerms playerId={playerId} scope={cacheScope} rpc={rpc}/>:null}
      </section>:null}
-    </>}
+    </>:null}
    </div>
   </div>:null}
  </div>;

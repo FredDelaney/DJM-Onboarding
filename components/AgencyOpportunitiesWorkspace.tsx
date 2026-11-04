@@ -10,6 +10,7 @@ import {
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import dynamic from 'next/dynamic';
+import Link from 'next/link';
 
 import type { AgencyActionRequest } from '@/components/AgencyActionDrawer';
 import type { AgencyIntelligenceRequest } from '@/components/AgencyEntityIntelligenceDrawer';
@@ -22,6 +23,7 @@ import { relativeDate } from '@/lib/platform-client';
 import { readWithDeadline } from '@/lib/read-with-deadline';
 import {clubNeedBriefFields, clubNeedFinancialFacts,clubNeedFootballFacts,clubNeedFieldValue,formatCommercialAmount} from '@/lib/club-need-brief';
 import {filterClubRequests, type RequestPriorityFilter, type RequestDealFilter} from '@/lib/club-request-filters';
+import {workspaceClubHref} from '@/lib/workspace-record-navigation';
 
 import styles from './AgencyOpportunitiesWorkspace.module.css';
 
@@ -702,6 +704,7 @@ export default function AgencyOpportunitiesWorkspace({
               const needOpen = !inactive && !invalidExpiry && !expired;
               const statusLabel = inactive ? `Need ${human(item.need.status).toLowerCase()}` : invalidExpiry ? 'Expiry needs review' : expired ? 'Need expired' : '';
               const needId = String(item.club_need_id);
+              const clubHref = workspaceClubHref(basePath, item.club?.organisation_id);
               const expanded = expandedNeed.scope === basePath && expandedNeed.id === needId;
               const toggleId = `need-review-${needId}`;
               const panelId = `need-detail-${needId}`;
@@ -770,6 +773,7 @@ export default function AgencyOpportunitiesWorkspace({
                     if (event.key !== 'Escape') return;
                     event.preventDefault(); event.stopPropagation(); setExpandedNeed({scope: basePath, id: ''}); document.getElementById(toggleId)?.focus();
                   }}>
+                    {clubHref?<Link className={styles.needSearch} href={clubHref} prefetch={false}>Open club profile<ChevronRight size={16}/></Link>:null}
                     {facts.length ? <section className={styles.needBriefGroup}><h3>Football requirements</h3><dl className={styles.needFacts}>{facts.map(([label, value]) => <div key={String(label)}><dt>{label}</dt><dd>{value}</dd></div>)}</dl></section> : null}
                     {financialFacts.length?<section className={styles.needBriefGroup}><h3>Budget & contract</h3><dl className={styles.needFacts}>{financialFacts.map(([label,value])=><div key={label}><dt>{label}</dt><dd>{value}</dd></div>)}</dl><p className={styles.needCoverage}>Request budgets only, not agreed earnings or agency revenue. No currency or tax conversion is applied.</p></section>:null}
                     {sourceFacts.length?<section className={styles.needBriefGroup}><h3>Source & priority</h3><dl className={styles.needFacts}>{sourceFacts.map(([label,value])=><div key={String(label)}><dt>{label}</dt><dd>{value}</dd></div>)}</dl>{item.need?.source_context?<p className={styles.needNotes}>{item.need.source_context}</p>:null}{item.need?.source_person_name&&item.need?.source_person_id?<a href={`${basePath}?view=network&person=${encodeURIComponent(item.need.source_person_id)}`} className={styles.needSearch}>Open source contact<ChevronRight size={16}/></a>:null}</section>:null}
