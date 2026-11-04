@@ -42,7 +42,18 @@ try{
   await directory.locator('summary').filter({hasText:'Filter'}).click();
   await directory.getByRole('button',{name:'Open Recruitment Prospect'}).click();
   await page.waitForURL(url=>url.searchParams.get('target')==='qa-target'&&url.searchParams.get('fromRoster')==='1');
-  await page.getByRole('region',{name:'Recruitment target workspace'}).getByRole('heading',{name:'Recruitment Prospect'}).waitFor();
+  const recruitmentProfile=page.getByRole('region',{name:'Recruitment Prospect player workspace'});
+  await recruitmentProfile.getByRole('heading',{name:'Recruitment Prospect'}).waitFor();
+  await recruitmentProfile.getByText('Prospected',{exact:true}).waitFor();
+  await recruitmentProfile.getByRole('heading',{name:'Club Information',exact:true}).waitFor();
+  for(const [tab,heading] of [['Tasks','Tasks'],['Updates','Updates'],['Deals','Shortlisted & Pitched'],['Profile','Club Information']]){
+   await recruitmentProfile.getByRole('navigation',{name:'Player sections'}).getByRole('button',{name:tab}).click();
+   await recruitmentProfile.getByRole('heading',{name:heading,exact:true}).waitFor();
+  }
+  assert.equal(await recruitmentProfile.getByRole('button',{name:'Change status for Recruitment Prospect'}).count(),0);
+  assert.equal(await recruitmentProfile.getByRole('button',{name:'Manage agents for Recruitment Prospect'}).count(),0);
+  assert.equal(await recruitmentProfile.getByRole('link',{name:'Player Profile'}).count(),0);
+  await page.screenshot({path:'/tmp/redream-athlivo-qa/recruitment-player-profile-'+width+'.png',fullPage:false});
   await page.getByRole('button',{name:'Back to Players'}).click();
   await page.waitForURL(url=>!url.searchParams.has('target')&&!url.searchParams.has('tab'));
   await directory.getByRole('button',{name:'Open José Silva'}).click();
