@@ -12,7 +12,7 @@ try {
     await page.route('https://example.supabase.co/**', async route => {
       const {action, body = {}} = route.request().postDataJSON(); calls.push({action, body});
       let value = {}, status = 200;
-      if (action === 'club_account') value = {club: {club: {organisation_id: 'club-fixture', name: 'Example FC'}, access: {}, demand: {items: [{club_need_id:'need-outside-summary',title:'Recorded centre-back need',status:'active'}]}, relationship_activity: {recent: []}, open_work: {tasks: [], commitments: []}, commercial: {deals: []}, pursuits: []}};
+      if (action === 'club_account') value = {club: {club: {organisation_id: 'club-fixture', name: 'Example FC'}, access: {}, demand: {items: [{club_need_id:'50000000-0000-4000-8000-000000000021',title:'Recorded centre-back need',status:'active'}]}, relationship_activity: {recent: []}, open_work: {tasks: [], commitments: []}, commercial: {deals: []}, pursuits: []}};
       else if (action === 'club_reference_people') value = {people: {players: [{id:'player-fixture',name:'Example Player',position:'Midfielder'}], contacts: [{id:'contact-fixture',name:'Example Contact',role:'Sporting director'}], can_view_contacts: true, player_count_basis: 'current_club_name'}};
       else if (action === 'redream_relationship_person' || action === 'redream_relationship_confirm_employment') value = person;
       else if (action === 'redream_birthday_record') value = {birthday: null};
@@ -37,8 +37,8 @@ try {
         await page.getByRole('row', {name:/Recorded centre-back need/}).waitFor();
         await page.getByRole('button', {name:'Add request',exact:true}).click();
         await page.getByText('Club request creation opened', {exact:true}).waitFor();
-        await page.getByRole('row', {name:/Recorded centre-back need/}).click();
-        await page.getByText('Need opened: need-outside-summary', {exact:true}).waitFor();
+        await page.getByRole('row', {name:/Recorded centre-back need/}).getByRole('button',{name:/open request/i}).click();
+        await page.getByText('Need opened: 50000000-0000-4000-8000-000000000021', {exact:true}).waitFor();
         await page.getByRole('button', {name:'Deals',exact:true}).click();
         await page.getByText('No deals found', {exact:true}).waitFor();
       } else {

@@ -42,3 +42,20 @@ All 2,354 automated tests pass. The new PostgreSQL fixture verifies the exact re
 2. Apply `20261104142417_exact_club_request_pitch_history.sql`. SHA-256 `b2e8a960c5ee0a02d6caef191bd12623c79299251710cc0f353760d6f8d76d83`. Check RLS and the service-role-only grants for `platform_server_club_request_pitch_history` and `platform_server_record_club_pitch_staff_reply`.
 3. Deploy `supabase/functions/agency-market/index.ts` to ReDream staging. Deploy the matching frontend after both RPCs are available.
 4. With a labelled synthetic player and two requests at the same club, shortlist the player, create a draft, publish a link, confirm a test send, and record a reply. Reopen the request and Player → Deals. Check the same reply and the exact return link. Verify that the second request stays separate, that restricted staff cannot read the history, and that a retry retains a single reply. Repeat the controls on a physical phone before promotion.
+
+## Players and Requests screenshot workflows
+
+- Players uses a nested roster filter, a profile identity rail, a club contract card and saved provider links. Agent Management shows the assigned staff and opens the existing searchable multi-select editor. Explicit Save keeps the current revision and permission checks in place.
+- Requests adds a sortable table, row selection, column visibility, search and filters. The editor saves age and commercial ranges, foot, origin, loan terms, notes, contact and staff on the existing request. The phone layout keeps the same review, shortlist and pitch journey. The seasonal preference is separate from official registration dates.
+- Transfer windows uses FIFA's public registration periods with country search, status counts, three categories and a scrollable timeline. The local check returned 203 associations from the official source. The drawer handles an unavailable feed with Retry. [FIFA registration periods](https://inside.fifa.com/transfer-system/player-transfers)
+
+Local evidence includes 2,356 automated tests, database tests for exact decimal ranges, tenant and role checks, stale revision and atomic create, and browser fixtures for saving and reopening a request, filters, timeline recovery and keyboard dismissal. Players and Requests were exercised at 320, 390, 768 and 1440 pixels. The desktop table, editor and timeline were compared with the supplied references at 1512 × 828. TypeScript and the production build passed. The workspace entry is 123,336 of 150,000 gzip bytes.
+
+Remaining screenshot differences include a verified next-match card, a roster Strategy filter backed by saved data, and safe club reassignment for a request with linked candidates and pitches. The request editor keeps position and currency as editable text so older values remain usable. Agency agreement expiry is managed through the agreement workflow. Full reference parity and signed-in staging acceptance remain open.
+
+### Complete staging manifest for this candidate
+
+1. Apply `20261104133424_connect_player_detail_to_club_and_work.sql` and `20261104142417_exact_club_request_pitch_history.sql` in order, using the checks above.
+2. Apply `20261104184712_club_request_editor_preferences.sql`. SHA-256 `adf43ce9d1810d45123f3e4ef21c29ef4936df1223491ccd38f223358fac179d`. Check that the create wrapper is service-role only, the patch rejects stale revisions and restricted staff, and reads and assignments stay within the selected tenant.
+3. Deploy `agency-market` and `agency-os` to ReDream staging, then the matching frontend. Confirm that the official transfer-window feed loads from the deployment.
+4. With staging fixtures, create and edit a request, reopen its exact record, and verify assignment, ranges and the shortlist-to-reply journey. Repeat with a restricted staff member and a second tenant to confirm isolation, then verify the modal and timeline on a physical phone.

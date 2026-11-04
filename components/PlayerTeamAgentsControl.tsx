@@ -1,6 +1,6 @@
 'use client';
 
-import {Check, LoaderCircle, Plus, Search, Users, X} from 'lucide-react';
+import {Check, LoaderCircle, Pencil, Plus, Search, Users, X} from 'lucide-react';
 import {createPortal} from 'react-dom';
 import {useCallback,useEffect,useRef,useState} from 'react';
 import {publicFile} from '@/lib/supabase';
@@ -146,26 +146,29 @@ export default function PlayerTeamAgentsControl({
  const visibleAvatars=variant==='table'?2:3;
  const label=variant==='table'?(agents.length===1?agents[0].name:agents.length?agents.length+' agents':'Add agents'):
   (agents.length?agents.length+' assigned':'No agents assigned');
+ const profile = variant==='profile';
  return <span className={styles.root} data-variant={variant}>
+  {profile?<span className={styles.profileHeading}><Users size={17}/> Agent Management</span>:null}
   {canManage?<button ref={button} className={styles.trigger} type="button"
    onClick={event=>{event.stopPropagation();start();}}
    aria-label={'Manage agents for '+playerName} aria-expanded={open}
    title={selectedNames||'Assign agents'} disabled={busy||uncertain}>
-    <span className={styles.stack}>{agents.slice(0,visibleAvatars).map(person=><Avatar key={person.user_id} person={person}/>)}
+    {profile?<Pencil size={16}/>:<><span className={styles.stack}>{agents.slice(0,visibleAvatars).map(person=><Avatar key={person.user_id} person={person}/>)}
      {!agents.length?<span className={styles.addAvatar}><Plus size={15}/></span>:null}
      {agents.length>visibleAvatars?<span className={styles.more}>+{agents.length-visibleAvatars}</span>:null}</span>
     <span className={styles.triggerText}>{label}</span>
-    <Plus size={14} className={styles.plus} aria-hidden="true"/>
-   </button>:<span className={styles.readOnly} aria-label={selectedNames||'No agents assigned'}>
+    <Plus size={14} className={styles.plus} aria-hidden="true"/></>}
+   </button>:profile?null:<span className={styles.readOnly} aria-label={selectedNames||'No agents assigned'}>
     <span className={styles.stack}>{agents.slice(0,visibleAvatars).map(person=><Avatar key={person.user_id} person={person}/>)}
      {agents.length>visibleAvatars?<span className={styles.more}>+{agents.length-visibleAvatars}</span>:null}</span>
     <span>{label}</span>
    </span>}
+  {profile?<span className={styles.profileAgents}>{agents.length?agents.map(agent=><span key={agent.user_id}><Avatar person={agent}/><span>{agent.name}{agent.is_lead?<small>Lead agent</small>:null}</span></span>):<small>No agents assigned</small>}</span>:null}
   {notice?<span className={styles.notice} role="status">{notice}</span>:null}
   {open&&typeof document!=='undefined'?createPortal(
    <div ref={popover} className={styles.popover} role="dialog" aria-label={'Manage agents for '+playerName}
     style={{top:position.top,left:position.left}} onClick={event=>event.stopPropagation()}>
-    <div className={styles.heading}><strong>Assigned agents</strong><button type="button" aria-label="Close agent selector" onClick={close} disabled={busy||uncertain}><X size={18}/></button></div>
+    <div className={styles.heading}><strong>Manage agents</strong><button type="button" aria-label="Close agent selector" onClick={close} disabled={busy||uncertain}><X size={18}/></button></div>
     <p className={styles.subtitle}>Add teammates to {playerName}. The lead stays assigned until changed separately.</p>
     <label className={styles.search}><Search size={15}/><input ref={searchRef} type="search" aria-label="Search agents" value={query}
      onChange={event=>setQuery(event.target.value)} placeholder="Search your team..."/></label>

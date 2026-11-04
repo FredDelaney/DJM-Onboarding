@@ -450,3 +450,35 @@ test('the actual authenticated Opportunities market reader carries private salar
  await db.exec(corrected.replace('redream_market_autopilot_v1','unreviewed_market_source'));
  try{await assert.rejects(()=>db.exec(patch),/Unreviewed market reader source/);}finally{await db.exec(corrected);}
 });
+
+test('request editor preferences preserve precision, role boundaries, and the existing version check',async()=>{
+ await actor();
+ await db.exec('create table public.profiles(id uuid primary key,display_name text)');
+ await db.exec(read('supabase/migrations/20261104184712_club_request_editor_preferences.sql'));
+ const actor2='10000000-0000-4000-8000-000000000007', outsider='10000000-0000-4000-8000-000000000008';
+ await db.query("insert into platform.tenant_memberships values($1,$3,'active','agent'),($2,$4,'active','owner')",[tenant,other,actor2,outsider]);
+ await db.query("insert into public.profiles values($1,'Example Agent'),($2,'Other Agency')",[actor2,outsider]);
+ const createRequest=(preferences:any)=>scalar('public.platform_server_create_club_need_v2($1,$2,$3)',[tenant,user,{club_name:'Preferences FC',position:'Centre forward',brief:{salary_budget:'5000',currency:'EUR',transfer_type:'loan'},preferences}]);
+ const receipt=await createRequest({salary_budget_min:'4250.50',window_preference:'summer',player_origin:'international',loan_option:'true',assigned_user_ids:[actor2]});
+ const id=receipt.club_need_id;
+ assert.equal(receipt.preferences_version,1);
+ const readPreferences=()=>scalar('public.redream_club_request_preferences($1)',[[id]]);
+ const snapshot=await readPreferences(), row=snapshot.records[id];
+ assert.equal(row.preferences.salary_budget_min,'4250.50');
+ assert.deepEqual(row.preferences.assigned_user_ids,[actor2]);
+ assert.equal(snapshot.staff.some((member:any)=>member.id===outsider),false);
+ const patch=(base:any,prefs:any)=>scalar('public.redream_club_need_patch_v2($1,$2,$3,$4)',[id,row.updated_at,base,prefs]);
+ await assert.rejects(()=>patch({salary_budget:'3000'},{assigned_user_ids:[outsider]}),/minimum budget/);
+ assert.equal((await record(id)).salary_budget,5000);
+ await assert.rejects(()=>patch({},{assigned_user_ids:[outsider]}),/active staff from this agency/);
+ await patch({transfer_type:'permanent'},{loan_option:null,window_preference:'winter'});
+ assert.equal((await readPreferences()).records[id].preferences.window_preference,'winter');
+ assert.equal((await readPreferences()).records[id].preferences.loan_option,undefined);
+ await assert.rejects(()=>patch({},{player_origin:'any'}),/changed/);
+ const before=await scalar('count(*) from djm_os.club_needs');
+ await assert.rejects(()=>createRequest({salary_budget_min:'6000'}),/minimum budget/);
+ assert.equal(await scalar('count(*) from djm_os.club_needs'),before);
+ await actor(other);
+ await assert.rejects(()=>readPreferences(),/administrator access/);
+ await actor();
+});

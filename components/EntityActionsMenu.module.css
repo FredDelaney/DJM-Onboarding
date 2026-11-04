@@ -77,3 +77,37 @@
 .retainedDraft dt { font-size:12px; color:var(--interface-muted,#64748b); }
 .retainedDraft dd { margin:4px 0 0; font-size:14px; line-height:1.5; white-space:pre-wrap; overflow-wrap:anywhere; }
 .recoveryCopy { margin:0; font-size:13px; line-height:1.5; color:var(--interface-muted,#64748b); }
+
+.backdrop[data-request-edit] { background: #171b20ce; backdrop-filter: none; }
+.sheet[data-request-edit] { width: min(768px,100%); max-height: min(820px,100%); border-radius: 14px; color: #151e30; }
+.sheet[data-request-edit] .head { padding: 20px 24px; background: #fbfaf4; border-color: #edf0f4; }
+.sheet[data-request-edit] .requestTitle { display: flex; align-items: center; gap: 16px; }
+.requestTitle p { display: flex; align-items: center; gap: 6px; margin: 4px 0 0; color: #67758a; font-size: 14px; }
+.sheet[data-request-edit] .head h3 { color: #131d2f; font-size: 23px; font-weight: 680; }
+.sheet[data-request-edit] .close { background: transparent; }
+.sheet[data-request-edit] .fields { gap: 21px; padding: 23px 24px; }
+.sheet[data-request-edit] .fields label > span { color: #172338; font-size: 14px; }
+.sheet[data-request-edit] .fields :is(input,select,textarea) { border-color: #dfe5ec; border-radius: 12px; }
+.requestClub { display: grid; gap: 10px; padding-bottom: 18px; border-bottom: 1px solid #ebeff4; font-size: 14px; }
+.requestClub > div { display: flex; align-items: center; gap: 12px; padding: 9px 12px; border: 1px solid #dfe5ec; border-radius: 12px; }
+.requestClub span:has(>strong) { display: grid; gap: 3px; }
+.requestClub small { font-size: 13px; color: #64758c; }
+.requestPair { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 10px; min-width: 0; margin: 0; padding: 0; border: 0; }
+.requestPair legend { margin-bottom: 8px; color: #172338; font-size: 14px; font-weight: 550; }
+.sheet[data-request-edit] .actions { grid-template-columns: 1fr 1fr; padding: 14px 24px; border-color: #edf0f4; }
+.sheet[data-request-edit] .actions button { border-radius: 999px; }
+.sheet[data-request-edit] .secondary { background: white; border: 1px solid #dfe5ec; }
+.sheet[data-request-edit] .primary { background: #2d7ff0; }
+@media(max-width: 680px) {
+ .backdrop[data-request-edit] { padding: 8px; }
+ .sheet[data-request-edit] { max-height: 100%; }
+ .sheet[data-request-edit] .head, .sheet[data-request-edit] .fields { padding-inline: 14px; }
+ .sheet[data-request-edit] .actions { padding: 12px 14px max(12px,env(safe-area-inset-bottom)); }
+}
+.requestChoices { min-width: 0; border: 0; padding: 0; margin: 0; }
+.requestChoices legend { margin-bottom: 8px; color: #172338; font-size: 14px; font-weight: 550; }
+.requestChoices > div { display: flex; flex-wrap: wrap; gap: 4px; padding: 4px; border-radius: 22px; background: #f0f3f7; }
+.requestChoices button { flex: 1 1 auto; min-height: 38px; padding: 5px 8px; border: 0; border-radius: 20px; background: transparent; color: #526277; font: inherit; font-size: 13px; cursor: pointer; }
+.requestChoices button[aria-pressed=true] { background: white; color: #131d2f; box-shadow: 0 1px 4px #172d4918; }
+@media (max-width: 680px) { .requestChoices button { min-height: 44px; } }
+.requestChoices button { display: inline-flex; align-items: center; justify-content: center; gap: 5px; }

@@ -6,6 +6,8 @@ import {
   LoaderCircle,
   MoreHorizontal,
   Pencil,
+  Snowflake,
+  Sun,
   Trash2,
   X,
 } from 'lucide-react';
@@ -18,6 +20,9 @@ import {emptyClubNeedBrief, validateClubNeedBrief} from '@/lib/club-need-brief';
 import {writeWithDeadline} from '@/lib/write-with-deadline';
 import {readWithDeadline} from '@/lib/read-with-deadline';
 import {confirmsEntityAction,isDefinitiveEntityDenial,entityActionErrorMessage} from '@/lib/entity-action-result';
+import RequestStaffPicker from './RequestStaffPicker';
+import type {RequestStaff} from '@/lib/club-request-preferences';
+import ClubIdentityMark,{CountryFlag} from './ClubIdentityMark';
 import AgencyRecordSelect,{type AgencyRecordLookup,type AgencyLookupKind} from './AgencyRecordSelect';
 import styles from './EntityActionsMenu.module.css';
 import JourneyStatus from './JourneyStatus';
@@ -60,6 +65,8 @@ type Props = {
   editOnly?: boolean;
   versionedEdit?: boolean;
   lookup?:AgencyRecordLookup;
+  requestStaff?: RequestStaff[];
+  requestClub?: {name:string;country?:string;league?:string};
 };
 
 export type EntityChange = 'edit' | 'archive' | 'delete';
@@ -94,6 +101,8 @@ function EntityActionsPanel({
   editOnly = false,
   versionedEdit = false,
   lookup,
+  requestClub,
+  requestStaff,
 }: Props) {
   const initialDraft = useMemo(
     () => Object.fromEntries(
@@ -251,7 +260,23 @@ function EntityActionsPanel({
     finally{mutation.current=false;if(current(request))setBusy(false);}
   };
 
-  const renderEditField=(field:EntityEditField)=>field.type==='reference'?<AgencyRecordSelect key={field.key} label={field.label} kind={field.lookupKind||'contact'} value={draft[field.key]||''} disabled={busy} lookup={lookup} onChange={id=>setDraft(current=>({...current,[field.key]:id}))}/>: (
+  const requestEdit = mode === 'edit' && requestClub;
+  const visibleRequestFields = ['window_preference','player_origin','loan_option','transfer_budget_min','salary_budget_min','assigned_user_ids','priority','position','min_age','max_age','preferred_foot','transfer_type','currency','transfer_budget','salary_budget','salary_period','profile_notes','source_person_id'];
+  const secondaryFields = requestEdit ? editFields.filter(field=>!visibleRequestFields.includes(field.key)) : editFields;
+  const renderEditField=(field:EntityEditField)=>{
+    if(requestEdit && field.type==='select' && ['window_preference','priority','preferred_foot','player_origin','transfer_type','salary_period'].includes(field.key)){
+      const loan = field.key==='transfer_type' && requestStaff;
+      const selected = loan && draft.transfer_type==='loan' && draft.loan_option==='true' ? 'loan_option' : draft[field.key]||'';
+      const options = loan ? [...(field.options||[]),['loan_option','Loan with option'] as const]
+        : field.key==='priority' ? (field.options||[]).filter(([value])=>['1','3','4',selected].includes(value)).map(([value,label])=>[value,value==='3'?'Medium':value===''?'Unrecorded':label] as const)
+        : field.options||[];
+      return <fieldset key={field.key} className={styles.requestChoices}>
+        <legend>{field.label}</legend>
+        <div>{options.map(([value,label])=><button key={value} type="button" aria-pressed={value===selected} disabled={busy}
+          onClick={()=>setDraft(current=>({...current,[field.key]:value==='loan_option'?'loan':value,...(loan?{loan_option:value==='loan_option'?'true':''}:{})}))}>{field.key==='window_preference'&&value==='winter'?<Snowflake size={15} color="#4383c3"/>:field.key==='window_preference'&&value==='summer'?<Sun size={15} color="#a55e06"/>:null}{label}</button>)}</div>
+      </fieldset>;
+    }
+    return field.type==='reference'?<AgencyRecordSelect key={field.key} label={field.label} kind={field.lookupKind||'contact'} value={draft[field.key]||''} disabled={busy} lookup={lookup} onChange={id=>setDraft(current=>({...current,[field.key]:id}))}/>: (
                     <label key={field.key}>
                       <span>{field.label}</span>
                       {field.type === 'select' ? <select aria-label={field.label} disabled={busy} value={draft[field.key]||''} onChange={event=>setDraft(current=>({...current,[field.key]:event.target.value}))}>
@@ -289,6 +314,7 @@ function EntityActionsPanel({
                       )}
                     </label>
                   );
+  };
 
   return (
     <div
@@ -309,7 +335,7 @@ function EntityActionsPanel({
 
       {mode ? createPortal(
         <div
-          className={styles.backdrop}
+          className={styles.backdrop} data-request-edit={Boolean(requestEdit)||undefined}
           style={viewport ? { top: viewport.top, height: viewport.height, bottom: 'auto' } : undefined}
           role="presentation"
           onMouseDown={(event) => {
@@ -318,7 +344,7 @@ function EntityActionsPanel({
         >
           <section
             ref={dialog}
-            className={styles.sheet}
+            className={styles.sheet} data-request-edit={Boolean(requestEdit)||undefined}
             onKeyDown={event=>{
               if(event.key==='Escape'){event.stopPropagation();if(!busy)close();}
               if(event.key==='Tab'){
@@ -335,10 +361,13 @@ function EntityActionsPanel({
           >
             <div className={styles.handle} />
             <header className={styles.head}>
-              <div>
+              {requestEdit ? <div className={styles.requestTitle}>
+                <ClubIdentityMark name={requestEdit.name} country={requestEdit.country} large/>
+                <div><h3>Edit Request</h3><p>{requestEdit.country?<CountryFlag country={requestEdit.country}/>:null}{requestEdit.name}</p></div>
+              </div> : <div>
                 <span>{mode === 'menu' ? 'Manage record' : mode === 'edit' ? 'Edit details' : mode === 'archive' ? 'Archive record' : 'Delete record'}</span>
                 <h3>{label}</h3>
-              </div>
+              </div>}
               <button
                 type="button"
                 className={styles.close}
@@ -389,15 +418,30 @@ function EntityActionsPanel({
                 }}
               >
                 <div className={styles.fields}>
-                  {editFields.filter(field=>!field.section).map(renderEditField)}
-                  {Array.from(new Set(editFields.map(field=>field.section).filter((section):section is string=>Boolean(section)))).map(section=><details key={section} className={styles.fieldSection} onToggle={event=>{const open=event.currentTarget.open;setEditSections(current=>open?current.includes(section)?current:[...current,section]:current.filter(value=>value!==section));}}><summary>{section}</summary>{editSections.includes(section)?<div className={styles.sectionFields}>{editFields.filter(field=>field.section===section).map(renderEditField)}</div>:null}</details>)}
+                  {requestEdit ? <>
+                    <div className={styles.requestClub}>
+                      <strong>Club</strong>
+                      <div><ClubIdentityMark name={requestEdit.name} country={requestEdit.country}/><span><strong>{requestEdit.name}</strong><small>{requestEdit.league||requestEdit.country}</small></span></div>
+                    </div>
+                    <div className={styles.requestPair}>{[requestStaff?'window_preference':'expires_at','priority'].flatMap(key=>editFields.filter(field=>field.key===key).map(renderEditField))}</div>
+                    {editFields.filter(field=>field.key==='position').map(renderEditField)}
+                    <fieldset className={styles.requestPair}><legend>Age range</legend>{editFields.filter(field=>['min_age','max_age'].includes(field.key)).map(renderEditField)}</fieldset>
+                    {['preferred_foot','player_origin','transfer_type','currency'].flatMap(key=>editFields.filter(field=>field.key===key).map(renderEditField))}
+                    <fieldset className={styles.requestPair}><legend>Transfer fee</legend>{['transfer_budget_min','transfer_budget'].flatMap(key=>editFields.filter(field=>field.key===key).map(renderEditField))}</fieldset>
+                    {editFields.filter(field=>field.key==='salary_period').map(renderEditField)}
+                    <fieldset className={styles.requestPair}><legend>Wage</legend>{['salary_budget_min','salary_budget'].flatMap(key=>editFields.filter(field=>field.key===key).map(renderEditField))}</fieldset>
+                    {['profile_notes','source_person_id'].flatMap(key=>editFields.filter(field=>field.key===key).map(renderEditField))}
+                    {requestStaff?<RequestStaffPicker staff={requestStaff} value={draft.assigned_user_ids||''} disabled={busy} onChange={value=>setDraft(current=>({...current,assigned_user_ids:value}))}/>:null}
+                    <details className={styles.fieldSection}><summary>Request name and expiry</summary><div className={styles.sectionFields}>{secondaryFields.filter(field=>!field.section&&(requestStaff||field.key!=='expires_at')).map(renderEditField)}</div></details>
+                  </> : editFields.filter(field=>!field.section).map(renderEditField)}
+                  {Array.from(new Set(secondaryFields.map(field=>field.section).filter((section):section is string=>Boolean(section)))).map(section=><details key={section} className={styles.fieldSection} onToggle={event=>{const open=event.currentTarget.open;setEditSections(current=>open?current.includes(section)?current:[...current,section]:current.filter(value=>value!==section));}}><summary>{section}</summary>{editSections.includes(section)?<div className={styles.sectionFields}>{secondaryFields.filter(field=>field.section===section).map(renderEditField)}</div>:null}</details>)}
                 </div>
                 {error ? <div className={styles.feedback}><JourneyStatus compact kind="error" description={error}/></div> : null}
                 <div className={styles.actions}>
                   <button type="button" className={styles.secondary} onClick={close} disabled={busy}>Cancel</button>
                   <button type="submit" className={styles.primary} disabled={busy || !dirty}>
                     {busy ? <LoaderCircle size={16} className={styles.spin} /> : <Pencil size={15} />}
-                    {busy ? 'Saving...' : 'Save changes'}
+                    {busy ? 'Saving...' : requestEdit ? 'Update Request' : 'Save changes'}
                   </button>
                 </div>
               </form>

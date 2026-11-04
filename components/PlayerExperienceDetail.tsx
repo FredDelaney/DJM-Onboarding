@@ -1,6 +1,6 @@
 'use client';
 
-import {ArrowLeft, ArrowRight, CalendarDays, Check, ChevronRight, CircleAlert, ClipboardCheck, ChevronDown, FileText, LoaderCircle, Pencil, RefreshCw, ShieldCheck, Sparkles, Target, Users, X} from 'lucide-react';
+import {ArrowLeft, ArrowRight, CalendarDays, Check, ChevronRight, CircleAlert, ClipboardCheck, ChevronDown, FileText, Link2, LoaderCircle, Pencil, RefreshCw, ShieldCheck, Sparkles, Target, Users, X} from 'lucide-react';
 import {useCallback, useEffect, useRef, useState} from 'react';
 import Link from 'next/link';
 import ClubIdentityMark,{CountryFlag} from './ClubIdentityMark';
@@ -15,7 +15,8 @@ import ClubPitchHistory from './ClubPitchHistory';
 import type {PitchHistoryInvoke} from '@/lib/club-pitch-history';
 import {friendlyError,relativeDate} from '@/lib/platform-client';
 import {PLAYER_AGENCY_STATUSES,playerAgencyStatus,playerAgencyStatusLabel,type PlayerAgencyStatus} from '@/lib/player-agency-status';
-import {invalidatePlayerProfile} from '@/lib/player-profile-cache';
+import {isHttpUrl} from '@/lib/validation';
+import {invalidatePlayerProfile,prefetchPlayerProfile} from '@/lib/player-profile-cache';
 import {readWithDeadline} from '@/lib/read-with-deadline';
 import {writeWithDeadline} from '@/lib/write-with-deadline';
 import {confirmsEntityAction} from '@/lib/entity-action-result';
@@ -27,7 +28,7 @@ import styles from './PlayerExperience.module.css';
 type Invoke=<T,>(action:string,body?:Record<string,unknown>)=>Promise<T>;
 type Rpc=<T,>(name:string,args?:Record<string,unknown>,signal?:AbortSignal)=>Promise<T>;
 type Props={playerId:string;summary?:any;cacheScope:string;canManageRecords:boolean;basePath:string;invoke:Invoke;marketInvoke?:PitchHistoryInvoke;rpc:Rpc;onRefresh:()=>Promise<void>;onClose:()=>void;onOpenAction:(request:AgencyActionRequest)=>void};
-type Tab='profile'|'tasks'|'updates'|'deals'|'documents'|'career';
+type Tab='profile'|'tasks'|'updates'|'deals'|'documents'|'career'|'links';
 type LinkedTask = {id: string; title: string; due_at: string | null};
 type EditKey='primary_position'|'current_club'|'current_country'|'contract_expiry';
 const editFields:{key:EditKey;label:string;type:'text'|'date'}[]=[
@@ -41,10 +42,10 @@ const ageFrom=(value:unknown)=>{const v=raw(value);if(!/^\d{4}-\d{2}-\d{2}$/.tes
 const daysUntil=(value:unknown)=>{const v=raw(value);if(!/^\d{4}-\d{2}-\d{2}$/.test(v))return null;const d=new Date(v+'T12:00:00Z');return Number.isNaN(d.getTime())?null:Math.ceil((d.getTime()-Date.now())/86400000);};
 const pickDraft=(identity:any):Record<EditKey,string>=>({primary_position:raw(identity?.primary_position),current_club:raw(identity?.current_club),current_country:raw(identity?.current_country),contract_expiry:raw(identity?.contract_expiry)});
 const plural=(n:number,label:string)=>n+' '+label+(n===1?'':'s');
-function ContractCard({title,expiry,empty='No expiry recorded'}:{title:string;expiry?:unknown;empty?:string}){
+function ContractCard({title,expiry,empty='No expiry recorded',onEdit}:{title:string;expiry?:unknown;empty?:string;onEdit?:()=>void}){
  const days=daysUntil(expiry);
  return <section className={styles.contractCard}>
-  <div className={styles.cardLabel}><CalendarDays size={16}/>{title}</div>
+  <div className={styles.cardLabel}><CalendarDays size={16}/>{title}{onEdit?<button type="button" onClick={onEdit} aria-label={'Edit '+title.toLowerCase()}><Pencil size={16}/></button>:null}</div>
   <strong>{expiry?dateText(expiry):empty}</strong>
   {days!==null?<><div className={styles.contractMeter} role="meter" aria-label={title+' time remaining over a two-year planning horizon'} aria-valuemin={0} aria-valuemax={730} aria-valuenow={Math.min(730,Math.max(0,days))}><span style={{width:Math.min(100,Math.max(0,days/730*100))+'%',background:days<90?'#f5b741':days<365?'#e3b338':'#20b879'}}/></div><small>{days<0?plural(Math.abs(days),'day')+' overdue':days===0?'Expires today':plural(days,'day')+' remaining'}</small></>:<small>Update the player record when the date is confirmed.</small>}
  </section>;
@@ -61,6 +62,22 @@ export default function PlayerExperienceDetail({playerId,summary,cacheScope,canM
  const [fullDetailReady,setFullDetailReady]=useState(false);
  const [error,setError]=useState('');
  const [tab,setTab]=useState<Tab>('profile');
+ const [references,setReferences]=useState<{label:string;url:string}[]|null>(null);
+ const [linksError,setLinksError]=useState(false);
+ const [linksRetry,setLinksRetry]=useState(0);
+ useEffect(()=>{
+  if(tab!=='links'||restricted)return;
+  let current=true;
+  setLinksError(false);
+  setReferences(null);
+  void readWithDeadline(prefetchPlayerProfile(playerId,invoke,cacheScope)).then(profile=>{
+   if(profile?.player?.id!==playerId)throw new Error('The player could not be confirmed.');
+   const links=([['Transfermarkt','transfermarkt_url'],['Wyscout','wyscout_url'],['Statistics','stats_url']] as const)
+    .flatMap(([label,key])=>{const url=raw(profile.player[key]);return url&&isHttpUrl(url)?[{label,url}]:[];});
+   if(current)setReferences(links);
+  }).catch(()=>{if(current)setLinksError(true);});
+  return()=>{current=false;};
+ },[tab,restricted,playerId,invoke,cacheScope,linksRetry]);
  const [editing,setEditing]=useState(false);
  const [draft,setDraft]=useState<Record<EditKey,string>>(()=>pickDraft(initial?.identity));
  const [displayName,setDisplayName]=useState(raw(initial?.identity?.name));
@@ -307,7 +324,7 @@ export default function PlayerExperienceDetail({playerId,summary,cacheScope,canM
          </div>
          {canEdit?<button type="button" onClick={openEdit} aria-label="Edit club"><Pencil size={16}/></button>:null}
         </section>
-        <ContractCard title="Club Contract Expiry" expiry={identity.contract_expiry}/>
+        <ContractCard title="Club Contract Expiry" expiry={identity.contract_expiry} onEdit={canEdit?openEdit:undefined}/>
        </div>
        <section className={styles.nextCard}><div className={styles.cardLabel}><Target size={16}/> Next move</div><strong>{mainNext||'No next action recorded'}</strong><p>{identity.next_action_due?'Due '+relativeDate(identity.next_action_due):'Keep the next player action visible and up to date.'}</p>{mainNext&&!identity.next_action&&(service?.next_control_fix?.instruction||service?.next_service_move?.instruction)?<button type="button" onClick={nextAction}>Review next action <ArrowRight size={15}/></button>:<Link href={basePath+'?view=calendar'}>Open Calendar <ArrowRight size={15}/></Link>}</section>
       </div>
@@ -317,8 +334,6 @@ export default function PlayerExperienceDetail({playerId,summary,cacheScope,canM
         <ContractCard title="Agency Contract Expiry" expiry={representation?.end_date} empty={representation?'No expiry recorded':'No active agreement'}/>
         {canEdit?<PlayerLeadAgentControl playerId={playerId} scope={cacheScope} rpc={rpc} onChanged={async()=>{await Promise.allSettled([reload(),onRefresh()]);}}/>:null}
         <div className={styles.staffCard}>
-         <h3>Assigned agents</h3>
-         <p className={styles.editHelp}>Add agents who work with this player. The lead remains accountable.</p>
          <PlayerTeamAgentsControl playerId={playerId} playerName={name} scope={cacheScope} rpc={rpc}
           initialAgents={Array.isArray(identity.assigned_agents)?identity.assigned_agents:[]}
           variant="profile" canManage={canEdit} onChanged={async()=>{await Promise.allSettled([reload(),onRefresh()]);}}/>
@@ -327,6 +342,7 @@ export default function PlayerExperienceDetail({playerId,summary,cacheScope,canM
        </div>
        <div className={styles.quickLinks}>
         <button type="button" onClick={()=>setTab('documents')}><FileText size={21}/> Documents <span>{documents.length||''}</span><ChevronRight size={17}/></button>
+        <button type="button" onClick={()=>setTab('links')}><Link2 size={21}/> Links <ChevronRight size={17}/></button>
         <button type="button" onClick={()=>setTab('career')}><Target size={20}/> Career & terms <ChevronRight size={17}/></button>
        </div>
       </div>
@@ -357,6 +373,14 @@ export default function PlayerExperienceDetail({playerId,summary,cacheScope,canM
       {canManageRecords && marketInvoke ? <ClubPitchHistory scope="player" scopeId={playerId} basePath={basePath} invoke={marketInvoke}/> : null}
       <div className={styles.sectionHeading}><div><h2>Recorded opportunities</h2><p>Other club interest recorded for this player.</p></div></div>
       {opportunities.length?<div className={styles.dealList}>{opportunities.map((item:any,index:number)=><article key={item.id||index}><ClubIdentityMark name={raw(item.club_name)||'Club'} country={item.country}/><div><strong>{item.club_name||'Club opportunity'}</strong><span>{item.summary||item.next_action||'No description'}</span></div><small>{human(item.stage||'Recorded')}</small></article>)}</div>:<EmptyPanel icon={Target} title="No other opportunities recorded" description="Other recorded club interest will appear here."/>}
+     </section>:null}
+     {tab==='links'?<section className={styles.tabPanel}>
+      <div className={styles.sectionHeading}><div><h2>Links</h2><p>Saved references for {name}.</p></div><button type="button" onClick={()=>setTab('profile')} aria-label="Return to profile"><X size={18}/></button></div>
+      {linksError?<div role="alert"><p>Could not load this player's links.</p><button type="button" onClick={()=>setLinksRetry(value=>value+1)}>Retry links</button></div>
+       :!references?<p role="status">Loading links...</p>
+       :references.length?<div className={styles.dealList}>{references.map(link=><article key={link.label}><Link2 size={18}/><div><strong>{link.label}</strong></div><a className={styles.recordAction} href={link.url} target="_blank" rel="noopener noreferrer">Open {link.label} <ChevronRight size={15}/></a></article>)}</div>
+       :<p>No reference links recorded.</p>}
+      <Link className={styles.recordAction} href={playerProfileUrl}>Manage links in Player Profile</Link>
      </section>:null}
      {tab==='documents'?<section className={styles.tabPanel}><div className={styles.sectionHeading}><div><h2>Documents</h2><p>Player and agency documents.</p></div><button type="button" onClick={()=>setTab('profile')} aria-label="Return to profile"><X size={18}/></button></div>
       {documents.length?<div className={styles.dealList}>{documents.map((item:any,index:number)=><article key={item.id||index}><FileText size={18}/><div><strong>{item.title||'Player document'}</strong><span>{human(item.document_type||'Document')}</span></div><small>{item.expires_at?'Expires '+dateText(item.expires_at):'No expiry'}</small></article>)}</div>:<EmptyPanel icon={FileText} title="No documents yet" description="Player documents will appear here when recorded in the agency."/>}

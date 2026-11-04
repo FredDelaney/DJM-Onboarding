@@ -1190,3 +1190,55 @@ button.needCandidate:hover { background: var(--agency-primary-soft, var(--interf
 .shortlistError{margin:8px 0;padding:10px 12px;border:1px solid #f2cbd0;border-radius:9px;color:#a12536;background:#fff8f8;font-size:13px}
 .shortlistNotice{margin:8px 0;padding:10px 12px;border:1px solid #cfe6d5;border-radius:9px;color:#246c4e;background:#f6fbf7;font-size:13px}
 @media(max-width:680px){.shortlistActions{justify-content:stretch}.shortlistAdd,.shortlistRemove{width:100%;justify-content:center}}
+
+/* Requests uses the same compact toolbar and roster rhythm as Players. */
+.requestToolbar { display: grid; gap: 12px; padding: 14px 16px 0; border-radius: 15px 15px 0 0; background: white; }
+.requestSearchRow { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+.requestSearchRow .search { flex: 1 1 230px; width: auto; max-width: none; }
+.requestToolButton, .addRequest { display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 0 16px; min-height: 44px; border: 1px solid #dce5f0; border-radius: 999px; background: white; color: #172338; font: inherit; font-size: 14px; cursor: pointer; }
+.addRequest { border-color: var(--agency-primary,#3388fb); background: var(--agency-primary,#3388fb); color: var(--agency-on-primary,#fff); font-weight: 600; }
+.requestFilterBar:has(.requestFilters) { display: flex; align-items: center; padding: 0; border: 0; background: transparent; }
+.requestFilterBar:has(.requestFilters) summary { display: flex; align-items: center; gap: 7px; min-height: 44px; padding: 0 9px; border-radius: 8px; color: #455871; font-size: 13px; list-style: none; cursor: pointer; }
+.requestFilterBar summary::-webkit-details-marker { display: none; }
+.requestFilters, .requestColumns { position: relative; }
+.requestToolMenu { position: absolute; top: 100%; left: 0; z-index: 12; display: grid; gap: 8px; width: min(235px,78vw); padding: 10px; border: 1px solid #dce5f0; border-radius: 12px; background: white; box-shadow: 0 8px 24px #172d491a; }
+.requestToolMenu > label:not([class]) { display: flex; align-items: center; gap: 9px; min-height: 38px; padding: 0 7px; font-size: 13px; }
+.requestToolMenu select { width: 100%; }
+.filterBadge { display: grid; place-items: center; min-width: 19px; height: 19px; border-radius: 10px; background: var(--agency-primary,#3388fb); color: var(--agency-on-primary,#fff); font-size: 11px; }
+.requestName { display: flex; align-items: center; min-width: 0; }
+.requestHead, .requestCell, .requestIdentity, .requestSelect { display: none; }
+@media (min-width: 900px) {
+ .listCard.requestList { display: block; margin: 0 16px 18px; border: 1px solid #dce5f0; border-radius: 13px; }
+ .requestHead, .requestList .needRow { display: grid; grid-template-columns: var(--request-columns); align-items: center; column-gap: 0; }
+ .requestHead { min-height: 51px; border-bottom: 1px solid #e6edf5; background: #f2f6fb; color: #334761; font-size: 13px; font-weight: 660; }
+ .requestHead > span:not(:first-child) { padding: 0 6px; }
+ .requestHeadName, .requestName { display: flex; align-items: center; gap: 11px; padding-inline: 14px 8px; align-self: stretch; box-shadow: 5px 0 10px -9px #12304965; }
+ .requestHead input, .requestSelect { display: inline-block; appearance: none; width: 17px; height: 17px; margin: 0; flex: 0 0 17px; border: 1px solid #acbdd0; border-radius: 50%; background: white; cursor: pointer; }
+ .requestHead input:checked, .requestSelect:checked { border: 5px solid var(--agency-primary,#3388fb); }
+ .sortRequest { display: inline-flex; align-items: center; gap: 4px; min-height: 44px; border: 0; background: transparent; color: inherit; font: inherit; cursor: pointer; }
+ .sortRequest svg { color: #8192a7; flex: none; }
+ .requestList .needRow { padding: 0; gap: 0; min-height: 58px; border: 0; border-bottom: 1px solid #e8edf5; border-radius: 0; }
+ .requestList .needRow:last-child { border-bottom: 0; }
+ .requestList .needReview { display: flex; align-items: center; min-width: 0; gap: 9px; min-height: 57px; padding: 5px 0; }
+ .requestList .needReview > svg:last-child, .requestMobileCopy { display: none; }
+ .requestIdentity { display: grid; gap: 3px; min-width: 0; text-align: left; }
+ .requestIdentity strong { color: #172238; font-size: 14px; font-weight: 660; overflow-wrap: anywhere; }
+ .requestIdentity small { display: flex; align-items: center; gap: 4px; color: #596f89; font-size: 12px; }
+ .requestCell { display: block; min-width: 0; padding: 0 6px; color: #405570; font-size: 13px; overflow-wrap: anywhere; }
+ .requestCellButton { display: inline-grid; place-items: center; min-width: 42px; min-height: 44px; border: 0; border-radius: 9px; background: transparent; color: #7386a1; cursor: pointer; }
+ .requestCellButton[data-notes] { color: #a55e06; }
+ .requestCount { display: grid; place-items: center; min-width: 25px; min-height: 25px; padding: 0 4px; border-radius: 15px; background: var(--agency-primary,#3388fb); color: var(--agency-on-primary,#fff); font-size: 12px; }
+ .requestPriority { display: flex; align-items: center; gap: 7px; }
+ .requestPriority i { width: 8px; height: 8px; border-radius: 50%; background: #95a6ba; flex: none; }
+ .requestPriority:is([data-priority="4"],[data-priority="5"]) i { background: #e33e42; }
+ .requestPriority[data-priority="3"] i { background: #da8b08; }
+ .requestPriority:is([data-priority="1"],[data-priority="2"]) i { background: #22a36e; }
+ .requestList .needRow > .rowActions { grid-column: auto; align-self: center; justify-self: end; }
+ .requestList .needDetail { padding: 18px 16px; }
+}
+@media (max-width: 899px) {
+ .requestColumns { display: none; }
+ .requestFilters .requestToolMenu { left: 0; }
+ .requestList .requestName > .needReview { width: 100%; }
+ .requestList .needRow { gap: 6px 10px; }
+}

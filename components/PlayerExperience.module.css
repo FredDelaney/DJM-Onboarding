@@ -323,3 +323,25 @@
 .rosterTable .playerRowName>span:last-child{min-width:0;white-space:nowrap}
 /* Do not let the agent editor intrude into the next column. */
 .rosterTable td.agentCell{overflow:hidden;text-overflow:clip}
+
+.contractCard .cardLabel button { display: grid; place-items: center; width: 44px; height: 44px; margin-left: auto; border: 0; border-radius: 50%; background: transparent; color: #637993; cursor: pointer; }
+.contractCard .cardLabel button:hover { background: #f1f5fa; }
+.contractCard .cardLabel button:focus-visible { outline: 2px solid var(--player-blue); }
+@media (min-width: 1024px) {
+ .directoryHeading { display: none; }
+ .playerDetailGrid { gap: clamp(24px,3vw,48px); }
+ .identityCover { width: 100%; margin-inline: 0; height: 114px; background: #d8f9e7; }
+ .identityCover > div:first-child { bottom: -25px; }
+ .identityRail { border: 0; }
+ .identityRail h1 { font-size: clamp(23px,2vw,28px); line-height: 1.3; }
+ .identityFacts { padding-inline: 12px; }
+ .detailTabs { gap: 9px; }
+}
+
+.advancedFilter { grid-template-columns: minmax(0,1fr); width: min(255px,calc(100vw - 48px)); min-height: 0; }
+.filterCategories { padding: 4px 8px 0; border-right: 0; max-height: min(475px,60dvh); }
+.filterCategories > button { font-size: 14px; }
+.filterCategories > small { position: sticky; bottom: 0; padding: 10px 8px; border-top: 1px solid #e8eef6; background: white; }
+.filterDetail { gap: 10px; padding: 10px 13px 16px; }
+.filterDetail > button { display: inline-flex; align-items: center; gap: 5px; }
+@media(max-width:680px) { .advancedFilter { left: -40px; } }

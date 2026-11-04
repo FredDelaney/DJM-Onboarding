@@ -1,13 +1,13 @@
 'use client';
 
 import {
-  ChevronRight,
+  ChevronRight, ChevronsUpDown, Columns3, FileText, Filter, ListOrdered, Plus, Snowflake, Sun,
   BriefcaseBusiness,
   MessageCircleMore,
   Target,
   Users,
 } from 'lucide-react';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
@@ -19,17 +19,24 @@ import AgencyOwnershipChip from '@/components/AgencyOwnershipChip';
 import EntityActionsMenu from '@/components/EntityActionsMenu';
 import WorkspaceListSearch from './WorkspaceListSearch';
 import ClubPitchHistory from './ClubPitchHistory';
+import ClubIdentityMark,{CountryFlag} from './ClubIdentityMark';
 import type {PitchHistoryInvoke} from '@/lib/club-pitch-history';
 import { opportunityReadState } from '@/lib/opportunity-read-state';
 import { relativeDate } from '@/lib/platform-client';
 import { readWithDeadline } from '@/lib/read-with-deadline';
 import {clubNeedBriefFields, clubNeedFinancialFacts,clubNeedFootballFacts,clubNeedFieldValue,formatCommercialAmount} from '@/lib/club-need-brief';
 import {filterClubRequests, type RequestPriorityFilter, type RequestDealFilter} from '@/lib/club-request-filters';
+import {additionalRequestFields,preferenceValue,requestPreferenceKeys,requestPreferencesPatch,type RequestPreferencesResult} from '@/lib/club-request-preferences';
 import {workspaceClubHref} from '@/lib/workspace-record-navigation';
 
 import styles from './AgencyOpportunitiesWorkspace.module.css';
 
 const AgencyOpportunityOverview = dynamic(() => import('./AgencyOpportunityOverview'));
+const TransferWindowsDialog = dynamic(() => import('./TransferWindowsDialog'));
+const requestColumns = ['Position', 'Window', 'Priority', 'Notes', 'Players', 'Budget'] as const;
+type RequestColumn = typeof requestColumns[number];
+const requestWidths: Record<RequestColumn, string> = {Position:'1.4fr', Window:'.7fr', Priority:'.85fr', Notes:'.62fr', Players:'.65fr', Budget:'1fr'};
+const priorityNames: Record<string,string> = {1:'Low',2:'Routine',3:'Normal',4:'High',5:'Urgent'};
 
 type OpportunityView = 'overview' | 'needs' | 'routes' | 'deals';
 
@@ -174,11 +181,13 @@ export default function AgencyOpportunitiesWorkspace({
   invoke,
   marketInvoke,
   recordRefreshKey,
+  onCreateNeed,
 }: {
   data: any;
   invoke: <T,>(action: string, body?: Record<string, unknown>) => Promise<T>;
   marketInvoke?: PitchHistoryInvoke;
   recordRefreshKey?: number;
+  onCreateNeed?: () => void;
   basePath: string;
   onRetry?: () => void;
   onRefresh: () => Promise<void>;
@@ -196,6 +205,27 @@ export default function AgencyOpportunitiesWorkspace({
   const [search, setSearch] = useState('');
   const [needPriority, setNeedPriority] = useState<RequestPriorityFilter>('all');
   const [needDeal, setNeedDeal] = useState<RequestDealFilter>('all');
+  const [showWindows, setShowWindows] = useState(false);
+  const requestTools = useRef<HTMLDivElement>(null);
+  useEffect(()=>{
+    if(view!=='needs')return;
+    const closeOutside=(event:PointerEvent)=>{
+      for(const menu of requestTools.current?.querySelectorAll<HTMLDetailsElement>('details[open]')||[]){
+        if(!menu.contains(event.target as Node))menu.open=false;
+      }
+    };
+    document.addEventListener('pointerdown',closeOutside);
+    return()=>document.removeEventListener('pointerdown',closeOutside);
+  },[view]);
+  const [requestPreferences, setRequestPreferences] = useState<RequestPreferencesResult|null>(null);
+  const [columns, setColumns] = useState<RequestColumn[]>([...requestColumns]);
+  const [requestSort, setRequestSort] = useState<{column: RequestColumn|'Club'; descending: boolean}|null>(null);
+  const [selection, setSelection] = useState<string[]>([]);
+  const [selectionOnly, setSelectionOnly] = useState(false);
+  const currentColumns = requestColumns.filter(column=>columns.includes(column));
+  const requestGrid = {'--request-columns':['minmax(155px,2fr)', ...currentColumns.map(column=>`minmax(0,${requestWidths[column]})`), '44px'].join(' ')} as CSSProperties;
+  const filterCount = Number(needPriority !== 'all') + Number(needDeal !== 'all');
+
   const [archiveItems, setArchiveItems] = useState<any[]>([]);
   const [shortlistBusy,setShortlistBusy]=useState('');
   const [shortlistStates,setShortlistStates]=useState<Record<string,string>>({});
@@ -307,6 +337,15 @@ export default function AgencyOpportunitiesWorkspace({
   const needs = [...list(data?.market?.demand?.items),...(exactNeed&&!needInSummary?[exactNeed]:[])].filter((item: any) =>
     !archived.has(`club_need:${String(item?.club_need_id || '')}`),
   );
+  const preferenceIds=needs.map(item=>String(item.club_need_id||'')).filter(id=>/^[a-f0-9]{8}-(?:[a-f0-9]{4}-){3}[a-f0-9]{12}$/i.test(id)).join(',');
+  useEffect(()=>{
+    if(view!=='needs'||!preferenceIds)return;
+    const controller=new AbortController();
+    void readWithDeadline(rpc<RequestPreferencesResult>('redream_club_request_preferences',{p_need_ids:preferenceIds.split(',').slice(0,251)},controller.signal),10000,controller.signal)
+      .then(result=>{if(!controller.signal.aborted)setRequestPreferences(result?.records&&Array.isArray(result.staff)?result:null);})
+      .catch(()=>{if(!controller.signal.aborted)setRequestPreferences(null);});
+    return()=>controller.abort();
+  },[rpc,view,preferenceIds,recordRefreshKey]);
   const routes = list(data?.market?.pursuits?.items).filter((item: any) => {
     const needId = String(item?.club_need_id || item?.need?.club_need_id || item?.need?.id || '');
     return !needId || !archived.has(`club_need:${needId}`);
@@ -353,7 +392,36 @@ export default function AgencyOpportunitiesWorkspace({
 
   const searchValue = search.trim().toLowerCase();
 
-  const filteredNeeds = filterClubRequests(needs,searchValue,needPriority,needDeal);
+  const matchedNeeds = filterClubRequests(needs,searchValue,needPriority,needDeal);
+  const filteredNeeds = (selectionOnly ? matchedNeeds.filter(item=>selection.includes(String(item.club_need_id))) : matchedNeeds).slice();
+  if (requestSort) {
+    const value = (item:any) => {
+      switch (requestSort.column) {
+        case 'Club': return item.club?.name;
+        case 'Position': return item.need?.position;
+        case 'Window': return requestPreferences?.records[item.club_need_id]?.preferences.window_preference;
+        case 'Priority': return item.need?.priority == null ? null : Number(item.need.priority);
+        case 'Players': return item.candidate_coverage?.recorded_candidates;
+        case 'Budget': return item.need?.transfer_budget == null ? null : Number(item.need.transfer_budget);
+        default: return null;
+      }
+    };
+    filteredNeeds.sort((left,right)=>{
+      const a=value(left),b=value(right);
+      if(requestSort.column==='Budget' && a!=null && b!=null) {
+        const byCurrency=String(left.need?.currency||'').localeCompare(String(right.need?.currency||''));
+        if(byCurrency) return byCurrency;
+      }
+      if(a==null||b==null) return Number(a==null)-Number(b==null);
+      const order=typeof a==='number'&&typeof b==='number'?a-b:String(a).localeCompare(String(b));
+      return requestSort.descending?-order:order;
+    });
+  }
+  const allSelected = matchedNeeds.length>0 && matchedNeeds.every(item=>selection.includes(String(item.club_need_id)));
+  const changeSort = (column: RequestColumn|'Club') => setRequestSort(current=>({column,descending:current?.column===column&&!current.descending}));
+  const sortHeading = (column: RequestColumn|'Club') => <button type="button" className={styles.sortRequest}
+    aria-label={`Sort requests by ${column}${requestSort?.column===column ? (requestSort.descending?', descending':', ascending') : ''}`}
+    onClick={()=>changeSort(column)}>{column}<ChevronsUpDown size={14} aria-hidden="true"/></button>;
 
   const filteredRoutes = useMemo(
     () =>
@@ -657,10 +725,28 @@ export default function AgencyOpportunitiesWorkspace({
           </button>
         </div>
 
-        {view !== 'overview' ? <WorkspaceListSearch className={styles.search} label="Search opportunities" placeholder={view==='needs'?'Search club or need':view==='routes'?'Search player or club':'Search live deals'} value={search} onChange={setSearch}/> : null}
+        {view !== 'overview' && view !== 'needs' ? <WorkspaceListSearch className={styles.search} label="Search opportunities" placeholder={view==='routes'?'Search player or club':'Search live deals'} value={search} onChange={setSearch}/> : null}
       </section>
 
-      {view === 'needs' ? <div className={styles.requestFilterBar} role="region" aria-label="Request filters">
+      {view === 'needs' ? <section className={styles.requestToolbar} aria-label="Request tools">
+        <div className={styles.requestSearchRow}>
+          <WorkspaceListSearch className={styles.search} label="Search opportunities" placeholder="Search clubs..." value={search} onChange={setSearch}/>
+          <button type="button" className={styles.requestToolButton} onClick={()=>setShowWindows(true)}><ListOrdered size={17}/> Transfer windows</button>
+          {onCreateNeed ? <button type="button" className={styles.addRequest} onClick={onCreateNeed}><Plus size={17}/> Add Request</button> : null}
+        </div>
+        <div ref={requestTools} className={styles.requestFilterBar} role="region" aria-label="Request filters" onKeyDown={event=>{
+          if(event.key!=='Escape')return;
+          const menu=(event.target as HTMLElement).closest<HTMLDetailsElement>('details[open]');
+          if(menu){event.stopPropagation();menu.open=false;menu.querySelector('summary')?.focus();}
+        }}>
+          <details className={styles.requestColumns}><summary><Columns3 size={17}/> Columns</summary>
+            <div className={styles.requestToolMenu}>{requestColumns.map(column=><label key={column}>
+              <input type="checkbox" checked={columns.includes(column)} onChange={()=>setColumns(current=>current.includes(column)?current.filter(value=>value!==column):[...current,column])}/>
+              {column}
+            </label>)}</div>
+          </details>
+          <details className={styles.requestFilters}><summary><Filter size={17}/> Filter {filterCount>0?<span className={styles.filterBadge}>{filterCount}</span>:null}</summary>
+          <div className={styles.requestToolMenu}>
         <label className={styles.requestFilter}><span>Priority</span>
           <select aria-label="Request priority" value={needPriority} onChange={event=>setNeedPriority(event.target.value as RequestPriorityFilter)}>
             <option value="all">All priorities</option>
@@ -679,9 +765,13 @@ export default function AgencyOpportunitiesWorkspace({
             <option value="unset">Not recorded</option>
           </select>
         </label>
-        <span className={styles.requestFilterCount} aria-live="polite">{filteredNeeds.length} of {needs.length} requests</span>
-        {(needPriority!=='all'||needDeal!=='all') ? <button type="button" className={styles.clearRequestFilters} onClick={()=>{setNeedPriority('all');setNeedDeal('all');}}>Clear filters</button>:null}
-      </div> : null}
+          </div></details>
+          {filterCount ? <button type="button" className={styles.clearRequestFilters} onClick={()=>{setNeedPriority('all');setNeedDeal('all');requestTools.current?.querySelectorAll<HTMLDetailsElement>('details[open]').forEach(menu=>{menu.open=false;});}}>Clear filters</button>:null}
+          {selection.length>0?<button type="button" className={styles.clearRequestFilters} aria-pressed={selectionOnly} onClick={()=>setSelectionOnly(value=>!value)}>{selectionOnly?'Show all requests':`Show selected (${selection.length})`}</button>:null}
+          <span className={styles.requestFilterCount} aria-live="polite">{filteredNeeds.length} of {needs.length} requests</span>
+        </div>
+        {showWindows?<TransferWindowsDialog onClose={()=>setShowWindows(false)}/>:null}
+      </section> : null}
 
       {exactBusy?<p role="status">Opening...</p>:null}
       {exactError?<div role="alert"><p>{exactError}</p><button type="button" className="btn" onClick={()=>setExactRetry(value=>value+1)}>Try again</button></div>:null}
@@ -697,7 +787,18 @@ export default function AgencyOpportunitiesWorkspace({
         onOpenPursuit={(request) => onOpenPursuit(request)}
         onOpenDeal={(request) => onOpenIntelligence(request)}
       /> : null}
-      {view !== 'overview' ? <section className={styles.listCard}>
+      {view !== 'overview' ? <section className={`${styles.listCard} ${view==='needs'?styles.requestList:''}`} style={view==='needs'?requestGrid:undefined}>
+        {view==='needs'&&filteredNeeds.length>0?<div className={styles.requestHead}>
+          <span className={styles.requestHeadName}>
+            <input type="checkbox" aria-label="Select visible requests" checked={allSelected} onChange={()=>{
+              const ids=matchedNeeds.map(item=>String(item.club_need_id));
+              setSelection(current=>allSelected?current.filter(id=>!ids.includes(id)):[...new Set([...current,...ids])]);
+              if(allSelected)setSelectionOnly(false);
+            }}/>
+            {sortHeading('Club')}
+          </span>
+          {currentColumns.map(column=><span key={column}>{column==='Notes'?column:sortHeading(column)}</span>)}<span/>
+        </div>:null}
         {view === 'needs'
           ? filteredNeeds.map((item: any) => {
               const candidates = list(
@@ -710,6 +811,14 @@ export default function AgencyOpportunitiesWorkspace({
               const needOpen = !inactive && !invalidExpiry && !expired;
               const statusLabel = inactive ? `Need ${human(item.need.status).toLowerCase()}` : invalidExpiry ? 'Expiry needs review' : expired ? 'Need expired' : '';
               const needId = String(item.club_need_id);
+              const preferences = requestPreferences?.records[needId]?.preferences;
+              const windowPreference = preferences?.window_preference;
+              const refreshRequest = async () => {
+                await refreshEntities();
+                if (!preferences) return;
+                const result = await rpc<RequestPreferencesResult>('redream_club_request_preferences',{p_need_ids:[needId]});
+                setRequestPreferences(current=>current&&result?.records?{...current,records:{...current.records,...result.records}}:current);
+              };
               const clubHref = workspaceClubHref(basePath, item.club?.organisation_id);
               const expanded = expandedNeed.scope === basePath && expandedNeed.id === needId;
               const toggleId = `need-review-${needId}`;
@@ -717,6 +826,8 @@ export default function AgencyOpportunitiesWorkspace({
               const toggle = () => setExpandedNeed({scope: basePath, id: expanded ? '' : needId});
               const facts = [
                 ['Position', item.need?.position],
+                ['Window',windowPreference&&windowPreference!=='unspecified'?human(windowPreference):null],
+                ['Origin',preferences?.player_origin?human(preferences.player_origin):null],
                 ['Club league',item.club?.league_name],
                 ['Country',item.club?.country],
                 ['Preferred foot', item.need?.preferred_foot],
@@ -726,11 +837,16 @@ export default function AgencyOpportunitiesWorkspace({
                 ['Availability',item.need?.availability_notes],
               ].filter(([, value]) => value);
               const financialFacts=clubNeedFinancialFacts(item.need||{});
+              for(const [label,key] of [['Minimum transfer fee','transfer_budget_min'],['Minimum wage','salary_budget_min']] as const){
+                const figure=formatCommercialAmount(preferences?.[key],item.need?.currency);
+                if(figure)financialFacts.push([label,figure]);
+              }
               const sourceFacts=[
                 ['Source contact',item.need?.source_person_name|| (item.need?.source_person_id?'Saved contact unavailable':null)],
                 ['Source organisation',item.need?.source_organisation_name||(item.need?.source_organisation_id?'Saved organisation unavailable':null)],
                 ['Received',item.need?.received_on],
                 ['Priority',({1:'Low',2:'Routine',3:'Normal',4:'High',5:'Urgent'} as Record<string,string>)[String(item.need?.priority)]],
+                ['Assigned users',Array.isArray(preferences?.assigned_user_ids)?requestPreferences?.staff.filter(member=>preferences.assigned_user_ids instanceof Array&&preferences.assigned_user_ids.includes(member.id)).map(member=>member.name).join(', '):null],
                 ['Source status',item.need?.source_status?human(item.need.source_status):'Not established'],
                 ['Expires', expiry !== null && Number.isFinite(expiry) ? relativeDate(item.need.expires_at) : null],
               ].filter(([, value]) => value);
@@ -747,9 +863,19 @@ export default function AgencyOpportunitiesWorkspace({
                     event.preventDefault(); toggle();
                   }}
                 >
+                  <div className={styles.requestName}>
+                  <input type="checkbox" className={styles.requestSelect} aria-label={`Select ${item.club?.name||'club'}: ${item.need?.title||'request'}`}
+                    checked={selection.includes(needId)} onChange={()=>{
+                      setSelection(current=>current.includes(needId)?current.filter(id=>id!==needId):[...current,needId]);
+                      if(selection.length===1&&selection.includes(needId))setSelectionOnly(false);
+                    }}/>
                   <button type="button" className={styles.needReview} id={toggleId} aria-label={`Review ${item.club?.name || 'club'}: ${item.need?.title || 'player need'}`} aria-expanded={expanded} aria-controls={panelId} onClick={toggle}>
-                    <span className={styles.icon}><Target size={16}/></span>
-                    <span className={styles.copy}>
+                    <ClubIdentityMark name={item.club?.name||'Club'} country={item.club?.country}/>
+                    <span className={styles.requestIdentity}>
+                      <strong>{item.club?.name || 'Club'}</strong>
+                      <small>{item.club?.country?<CountryFlag country={item.club.country}/>:null}{item.club?.country || item.need?.title || 'Player need'}</small>
+                    </span>
+                    <span className={`${styles.copy} ${styles.requestMobileCopy}`}>
                       <span className={styles.rowEyebrow}>Club need</span>
                       <strong>{item.club?.name || 'Club'} · {item.need?.title || 'Player need'}</strong>
                       <span>{statusLabel || item.next_action?.instruction || 'Review the requirements and recorded player opportunities.'}</span>
@@ -757,21 +883,48 @@ export default function AgencyOpportunitiesWorkspace({
                     </span>
                     <ChevronRight size={18} className={expanded ? styles.needChevronOpen : undefined}/>
                   </button>
+                  </div>
+                  {currentColumns.map(column=>{
+                    const count=item.candidate_coverage?.recorded_candidates;
+                    const hasNotes=Boolean(item.need?.profile_notes||item.need?.raw_request||item.need?.source_context);
+                    const content = column==='Position' ? item.need?.position
+                      : column==='Window' ? (windowPreference==='winter'?<Snowflake size={17} aria-label="Winter" color="#357ebf"/>:windowPreference==='summer'?<Sun size={17} aria-label="Summer" color="#a55e06"/>:null)
+                      : column==='Priority' ? <span className={styles.requestPriority} data-priority={item.need?.priority}><i/>{priorityNames[String(item.need?.priority)]||'Unrecorded'}</span>
+                      : column==='Notes' ? <button type="button" className={styles.requestCellButton} data-notes={hasNotes||undefined} aria-label={hasNotes?'Review request notes':'No notes recorded. Review request'} onClick={toggle}><FileText size={17}/></button>
+                      : column==='Players' ? <button type="button" className={styles.requestCellButton} aria-label={candidateCoverageLabel(item)} title={candidateCoverageLabel(item)} onClick={toggle}><span className={typeof count==='number'?styles.requestCount:undefined}>{typeof count==='number'?count:'–'}</span></button>
+                      : formatCommercialAmount(item.need?.transfer_budget,item.need?.currency);
+                    return <div className={styles.requestCell} key={column}>{content||'–'}</div>;
+                  })}
                   <div className={styles.rowActions}>
                     <EntityActionsMenu
                       kind="club_need"
+                      requestClub={{name:item.club?.name||'Club', country:item.club?.country, league:item.club?.league_name}}
                       versionedEdit
                       lookup={lookupRecords}
                       entityId={needId}
                       label={`${item.club?.name || 'Club'} · ${item.need?.title || 'Player need'}`}
-                      rpc={(name,args,signal)=>name==='redream_entity_patch'?rpc('redream_club_need_patch',{p_need_id:needId,p_expected_updated_at:item.need?.updated_at||null,p_patch:args?.p_patch},signal):rpc(name,args,signal)}
-                      onChanged={refreshEntities}
+                      rpc={(name,args,signal)=>{
+                        if(name!=='redream_entity_patch')return rpc(name,args,signal);
+                        const patch = args?.p_patch as Record<string,unknown>;
+                        if(!preferences)return rpc('redream_club_need_patch',{p_need_id:needId,p_expected_updated_at:item.need?.updated_at||null,p_patch:patch},signal);
+                        const ordinary = Object.fromEntries(Object.entries(patch).filter(([key])=>!requestPreferenceKeys.some(preference=>preference===key)));
+                        return rpc('redream_club_need_patch_v2',{
+                          p_need_id:needId,p_expected_updated_at:item.need?.updated_at||null,
+                          p_patch:ordinary,p_preferences:requestPreferencesPatch(patch),
+                        },signal);
+                      }}
+                      requestStaff={preferences?requestPreferences?.staff:undefined}
+                      onChanged={refreshRequest}
                       fields={[
                         { key: 'title', label: 'Need title', value: item.need?.title },
                         { key: 'position', label: 'Position', value: item.need?.position },
                         { key: 'profile_notes', label: 'Profile notes', value: item.need?.profile_notes, type: 'textarea' },
                         { key: 'expires_at', label: 'Expires', value: item.need?.expires_at ? String(item.need.expires_at).slice(0, 10) : '', type: 'date' },
                         ...clubNeedBriefFields.map(field=>({...field,value:clubNeedFieldValue(field.key,item.need?.[field.key])})),
+                        ...(preferences?[...additionalRequestFields.map(field=>({...field,value:preferenceValue(preferences[field.key])})),
+                          {key:'loan_option',label:'Loan with option',value:preferenceValue(preferences.loan_option)},
+                          {key:'assigned_user_ids',label:'Assign users',value:preferenceValue(preferences.assigned_user_ids)},
+                        ]:[]),
                       ]}
                     />
                   </div>
