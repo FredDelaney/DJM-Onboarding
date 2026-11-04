@@ -346,3 +346,13 @@
 /* Long prospect names must never widen the shared profile at tablet sizes. */
 .playerContent,.tabPanel,.sectionHeading,.sectionHeading>div{min-width:0;max-width:100%}
 .sectionHeading>div h2,.sectionHeading>div p{overflow-wrap:anywhere;word-break:break-word}
+
+/* Shared signed-player and recruitment profile: full-size touch targets. */
+.playerTopActions>button{display:inline-flex;align-items:center;justify-content:center;gap:7px;min-height:44px;border:1px solid #dce6f4;padding:0 13px;border-radius:12px;background:#fff;color:#58759b;font:inherit;font-size:12px;font-weight:700;cursor:pointer}
+.playerTopActions>button:hover{background:#f1f7ff}
+.insightsLink{min-height:44px;justify-content:center;background:#fff;cursor:pointer}
+@media(max-width:760px){
+ .identityEdit{width:44px;height:44px;top:5px;right:5px}
+ .detailTabs button{min-height:44px}
+ .playerTopActions>a,.playerTopActions>button{min-height:44px}
+}
