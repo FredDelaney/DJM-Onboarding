@@ -295,9 +295,18 @@
 }
 
 /* The Agent table cell contains an actionable multi-person stack, not one name. */
-.rosterTable td.agentCell{overflow:visible;white-space:nowrap;padding:5px 7px}
+.rosterTable td.agentCell{overflow:hidden;white-space:nowrap;padding:5px 7px}
 .rosterTable thead th:nth-child(7){min-width:126px}
 
 /* An editable stack of agents needs more room than a single-name column. */
 .rosterTable th.agentHeader{width:18%;min-width:174px}
 .rosterTable td.agentCell{min-width:174px;padding:4px 5px}
+
+
+/* Keep selection, portrait and name on one vertical centre line. */
+.rosterNameContent{display:flex;align-items:center;width:100%;min-width:0}
+.rosterTable .selectPlayer{display:inline-flex;align-items:center;justify-content:center;flex:0 0 20px;margin:0 12px 0 0}
+.rosterTable .playerRowName{display:inline-flex;align-items:center;flex:1 1 auto;max-width:100%;min-width:0}
+.rosterTable .playerRowName>span:last-child{min-width:0;white-space:nowrap}
+/* Do not let the agent editor intrude into the next column. */
+.rosterTable td.agentCell{overflow:hidden;text-overflow:clip}

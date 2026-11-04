@@ -55,3 +55,14 @@ test('writes verify scope, active agency members and no stale overwrite',()=>{
  assert.match(control,/p_expected_revision:data\.revision/);
  assert.match(control,/Reload this player before changing agents again/);
 });
+
+test('roster selection is centred and saved multi-agent count cannot overlap Stage',()=>{
+ const rosterStyles=read('components/PlayerExperience.module.css');
+ const agentStyles=read('components/PlayerTeamAgentsControl.module.css');
+ assert.match(directory,/className=\{styles\.rosterNameContent\}/);
+ assert.match(rosterStyles,/\.rosterNameContent\{display:flex;align-items:center;/);
+ assert.match(rosterStyles,/\.rosterTable td\.agentCell\{overflow:hidden;/);
+ assert.match(agentStyles,/\.root\[data-variant="table"\] \.notice\{position:absolute;/);
+ assert.match(agentStyles,/\.root\[data-variant="table"\] \.trigger\{width:100%;max-width:100%;/);
+ assert.match(control,/const visibleAvatars=variant==='table'\?2:3;/);
+});
