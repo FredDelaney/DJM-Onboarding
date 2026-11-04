@@ -84,6 +84,7 @@ try{
  await player.getByRole('heading',{name:'Assigned player',exact:true}).waitFor();
  assert.equal(await player.getByText('Private objective',{exact:true}).count(),0);
  assert.equal(await player.getByRole('button',{name:'Edit player'}).count(),0);
+ assert.equal(await player.getByRole('button',{name:'Change status for Assigned Player'}).count(),0);
  await back();
 
  player=await open('Quiet Player');
@@ -141,5 +142,39 @@ try{
  await back();
  assert.equal(await table.getByText('Signed',{exact:true}).count(),0,'Saved player is no longer signed');
  assert.equal(await table.getByText('Mandated',{exact:true}).count(),2,'Saved status is reflected in the roster');
+ // The status itself can be edited without opening the full profile form.
+ player=await open('Contract Player');
+ const changeStatus=player.getByRole('button',{name:'Change status for Contract Player'});
+ await changeStatus.click();
+ const picker=player.getByRole('group',{name:'Choose agency status'});
+ assert.equal(await picker.getByRole('button',{name:'Signed'}).count(),1);
+ assert.equal(await picker.getByRole('button',{name:'Prospect'}).count(),1);
+ assert.equal(await picker.getByRole('button',{name:'Mandated'}).count(),1);
+ assert.equal(await picker.getByRole('button',{name:'Active'}).count(),0);
+ await picker.getByRole('button',{name:'Signed'}).click();
+ await picker.getByRole('button',{name:'Save status'}).click();
+ await player.getByRole('status').getByText('Agency status updated to Signed.').waitFor();
+ await changeStatus.getByText('Signed',{exact:true}).waitFor();
+ // Cancel a proposed change without changing the recorded value.
+ await changeStatus.click();
+ await picker.getByRole('button',{name:'Prospect'}).click();
+ await picker.getByRole('button',{name:'Cancel'}).click();
+ assert.equal(await changeStatus.getByText('Signed',{exact:true}).count(),1);
+ await back();
+ assert.equal(await table.getByText('Signed',{exact:true}).count(),1,'The roster reflects the direct status change');
+ assert.equal(await table.getByText('Mandated',{exact:true}).count(),1,'The roster retains the other mandated player');
+ player=await open('Contract Player');
+ await player.getByRole('button',{name:'Change status for Contract Player'}).getByText('Signed',{exact:true}).waitFor();
+ await back();
+ // Status changes remain available on a narrow phone without lateral scrolling.
+ await page.setViewportSize({width:320,height:844});
+ await page.waitForFunction(()=>document.querySelector('button[aria-label="Card view"]')?.getAttribute('aria-pressed')==='true');
+ player=await open('Contract Player');
+ await player.getByRole('button',{name:'Change status for Contract Player'}).click();
+ const bounds=await player.getByRole('group',{name:'Choose agency status'}).boundingBox();
+ assert.ok(bounds&&bounds.x>=-1&&bounds.x+bounds.width<=321,'Mobile status picker stays on screen: '+JSON.stringify(bounds));
+ assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),'Mobile picker does not overflow');
+ await page.screenshot({path:output+'/status-picker-320.png',fullPage:false});
+ await player.getByRole('group',{name:'Choose agency status'}).getByRole('button',{name:'Cancel'}).click();
  assert.deepEqual(errors,[],'No browser errors');
 }finally{await browser.close();}

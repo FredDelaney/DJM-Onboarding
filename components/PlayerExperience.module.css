@@ -221,3 +221,34 @@
 .editPanel select{min-height:43px;border:1px solid #dce5ef;border-radius:10px;padding:8px 12px;color:#243851;background:white;font:inherit;font-size:14px;min-width:0}
 .editPanel select:focus-visible{outline:2px solid var(--player-blue)}
 .identityStats .statusChip{max-width:100%;overflow:hidden;text-overflow:ellipsis;min-height:24px;padding:3px 7px;font-size:11px}
+
+
+/* Inline agency-status editor: one tap on the status badge, no full-page form. */
+.statusPickerAnchor{position:relative;display:inline-flex;align-items:center;justify-content:center;max-width:100%;min-height:36px}
+.statusPickerTrigger{display:inline-flex;align-items:center;justify-content:center;gap:5px;min-height:40px;max-width:100%;padding:2px;border:1px solid transparent;border-radius:12px;background:transparent;color:#5a7290;cursor:pointer}
+.statusPickerTrigger:hover{border-color:#d5e4f4;background:#f5f9ff}
+.statusPickerTrigger:focus-visible{outline:2px solid var(--player-blue);outline-offset:2px}
+.statusPickerTrigger:disabled{opacity:.65;cursor:wait}
+.statusPickerTrigger svg{flex:none;color:#6a88ab}
+.statusPickerPopover{position:absolute;z-index:60;top:calc(100% + 7px);left:50%;transform:translateX(-50%);width:min(244px,calc(100vw - 32px));max-width:none;display:grid;gap:11px;padding:15px;border:1px solid #dce6f2;border-radius:14px;background:white;box-shadow:0 16px 40px rgba(32,58,95,.18);text-align:left}
+.statusPickerTitle{margin:0!important;font-size:13px!important;font-weight:750;color:#263c5b!important}
+.statusPickerChoices{display:grid;gap:5px}
+.statusPickerChoice{display:flex;align-items:center;justify-content:space-between;min-height:44px;width:100%;padding:6px 9px;border:1px solid #e2eaf5;border-radius:10px;background:#fff;cursor:pointer}
+.statusPickerChoice[aria-pressed=true]{border-color:var(--player-blue);background:#f5f9ff}
+.statusPickerChoice:focus-visible,.statusPickerFooter button:focus-visible{outline:2px solid var(--player-blue);outline-offset:2px}
+.statusPickerChoice:disabled{cursor:wait}
+.statusPickerChoice svg{color:var(--player-blue)}
+.statusPickerError{margin:0!important;color:#a8342b!important;font-size:11px!important;line-height:1.5}
+.statusPickerFooter{display:flex;justify-content:flex-end;gap:7px}
+.statusPickerFooter button{min-height:38px;padding:0 11px;border-radius:9px;border:1px solid #dce6f2;background:#fff;color:#496381;font-size:11px;font-weight:700;cursor:pointer}
+.statusPickerFooter button:last-child{border-color:var(--player-blue);background:var(--player-blue);color:var(--agency-on-primary,#fff)}
+.statusPickerFooter button:disabled{opacity:.6;cursor:not-allowed}
+
+
+@media(max-width:760px){
+ .identityStats>div:first-child{flex:1.8;min-width:84px}
+ .identityStats>div:nth-child(2){flex:.5;min-width:22px}
+ .identityStats>div:nth-child(3){flex:.9;min-width:42px}
+ .identityStats .statusChip{white-space:nowrap;font-size:10px;padding:3px 6px}
+ .statusPickerTrigger{gap:3px}
+}

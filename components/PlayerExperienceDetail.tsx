@@ -1,6 +1,6 @@
 'use client';
 
-import {ArrowLeft, ArrowRight, CalendarDays, Check, ChevronRight, CircleAlert, ClipboardCheck, FileText, Link2, LoaderCircle, Mail, Pencil, Plus, RefreshCw, ShieldCheck, Sparkles, Target, Users, X} from 'lucide-react';
+import {ArrowLeft, ArrowRight, CalendarDays, Check, ChevronRight, CircleAlert, ClipboardCheck, ChevronDown, FileText, Link2, LoaderCircle, Mail, Pencil, Plus, RefreshCw, ShieldCheck, Sparkles, Target, Users, X} from 'lucide-react';
 import {useCallback, useEffect, useRef, useState} from 'react';
 import Link from 'next/link';
 import ClubIdentityMark,{CountryFlag} from './ClubIdentityMark';
@@ -54,6 +54,11 @@ export default function PlayerExperienceDetail({playerId,summary,cacheScope,canM
  const [draft,setDraft]=useState<Record<EditKey,string>>(()=>pickDraft(initial?.identity));
  const [displayName,setDisplayName]=useState(raw(initial?.identity?.name));
  const [agencyStatusDraft,setAgencyStatusDraft]=useState<PlayerAgencyStatus>(()=>playerAgencyStatus(initial?.identity?.agency_status));
+ const [statusOpen,setStatusOpen]=useState(false);
+ const [statusDraft,setStatusDraft]=useState<PlayerAgencyStatus>(()=>playerAgencyStatus(initial?.identity?.agency_status));
+ const [statusBusy,setStatusBusy]=useState(false);
+ const [statusError,setStatusError]=useState('');
+ const [statusUnconfirmed,setStatusUnconfirmed]=useState(false);
  const [saveBusy,setSaveBusy]=useState(false);
  const [saveError,setSaveError]=useState('');
  const [savedMessage,setSavedMessage]=useState('');
@@ -70,10 +75,12 @@ export default function PlayerExperienceDetail({playerId,summary,cacheScope,canM
     }else{
      setDetail({...response.player,identity:{...(summary?.identity||{}),...response.player.identity},service:{...(summary?.service||{}),...(response.player.service||{})}});
      setFullDetailReady(true);
+     return true;
     }
    }}
   catch(cause){if(alive.current&&sequence===request.current)setError(friendlyError(cause));}
   finally{if(alive.current&&sequence===request.current)setLoading(false);}
+  return false;
  },[invoke,playerId,summary]);
  useEffect(()=>{alive.current=true;void prefetchPlayerProfile(playerId,invoke,cacheScope).catch(()=>undefined);void reload();return()=>{alive.current=false;request.current++;};},[playerId,invoke,cacheScope,reload]);
  const identity=detail?.identity||{},service=detail?.service||{},career=detail?.career_alignment||{};
@@ -123,7 +130,59 @@ export default function PlayerExperienceDetail({playerId,summary,cacheScope,canM
   }catch(cause){if(alive.current)setSaveError(friendlyError(cause));}
   finally{mutation.current=false;if(alive.current)setSaveBusy(false);}
  };
- const openEdit=()=>{setDraft(pickDraft(identity));setAgencyStatusDraft(playerAgencyStatus(identity.agency_status));setDisplayName(name);setSaveError('');setSavedMessage('');setEditing(true);};
+ const openStatusPicker=()=>{
+  if(!canEdit||mutation.current||editing||statusUnconfirmed)return;
+  setStatusDraft(playerAgencyStatus(identity.agency_status));
+  setStatusError('');
+  setStatusUnconfirmed(false);
+  setSavedMessage('');
+  setStatusOpen(true);
+ };
+ const saveStatus=async()=>{
+  if(!canEdit||mutation.current||statusUnconfirmed)return;
+  const currentStatus=playerAgencyStatus(identity.agency_status);
+  if(statusDraft===currentStatus){setStatusOpen(false);return;}
+  mutation.current=true;setStatusBusy(true);setStatusError('');setSavedMessage('');
+  try{
+   const outcome=await writeWithDeadline(async signal=>{
+    try{return {value:await rpc<any>('redream_entity_patch',{
+     p_entity_type:'player',p_entity_id:playerId,p_patch:{agency_status:statusDraft},
+    },signal)};}catch(cause){return {error:cause};}
+   },12000);
+   if(!alive.current)return;
+   if(outcome.status==='unknown'){
+    setStatusUnconfirmed(true);
+    setStatusError('The save could not be confirmed. Reload the player before making another change.');
+    return;
+   }
+   if('error' in outcome.result){setStatusError(friendlyError(outcome.result.error));return;}
+   if(!confirmsEntityAction(outcome.result.value,'edit','player',playerId,false)){
+    setStatusUnconfirmed(true);
+    setStatusError('The save could not be confirmed. Reload the player before making another change.');
+    return;
+   }
+   const recorded=statusDraft;
+   setDetail((current:any)=>current?{...current,identity:{...current.identity,agency_status:recorded}}:current);
+   setStatusOpen(false);
+   setSavedMessage('Agency status updated to '+playerAgencyStatusLabel(recorded)+'.');
+   // A confirmed write is not undone just because a background refresh fails.
+   await Promise.allSettled([reload(),onRefresh()]);
+  }catch(cause){if(alive.current)setStatusError(friendlyError(cause));}
+  finally{mutation.current=false;if(alive.current)setStatusBusy(false);}
+ };
+ const refreshUnconfirmedStatus=async()=>{
+  if(statusBusy||mutation.current)return;
+  setStatusBusy(true);
+  try{
+   if(await reload()){
+    setStatusUnconfirmed(false);
+    setStatusError('');
+    setStatusOpen(false);
+    await Promise.allSettled([onRefresh()]);
+   }
+  }finally{if(alive.current)setStatusBusy(false);}
+ };
+ const openEdit=()=>{if(statusUnconfirmed)return;setStatusOpen(false);setDraft(pickDraft(identity));setAgencyStatusDraft(playerAgencyStatus(identity.agency_status));setDisplayName(name);setSaveError('');setSavedMessage('');setEditing(true);};
  return <div className={styles.playerSurface} role="region" aria-label={name+' player workspace'}>
   <div className={styles.playerPageHeader}><button type="button" className={styles.backLink} onClick={onClose} aria-label="Back to Players"><ArrowLeft size={17}/><span>Players</span></button><div className={styles.playerTopActions}><Link href={playerProfileUrl}><Sparkles size={16}/> Player Profile</Link>{canEdit?<EntityActionsMenu scope={cacheScope} kind="player" entityId={playerId} label={name} rpc={rpc} onChanged={async()=>{await onRefresh();await reload();}} fields={editFields.map(field=>({...field,value:identity[field.key]}))}/>:null}</div></div>
   {loading?<div className={styles.loadState}><LoaderCircle size={22}/> Loading player...</div>:null}
@@ -132,13 +191,34 @@ export default function PlayerExperienceDetail({playerId,summary,cacheScope,canM
    <aside className={styles.identityRail} aria-label="Player identity">
     <div className={styles.identityCover}>
      <PlayerProfilePhoto playerId={playerId} name={name} path={identity.profile_photo_path} canEdit={canEdit} invoke={invoke} className={styles.identityPortrait} onSaved={path=>{invalidatePlayerProfile(playerId,cacheScope);setDetail((current:any)=>current?{...current,identity:{...current.identity,profile_photo_path:path}}:current);void onRefresh();}}/>
-     {canEdit?<button type="button" className={styles.identityEdit} aria-label="Edit player" onClick={openEdit}><Pencil size={17}/></button>:null}
+     {canEdit?<button type="button" className={styles.identityEdit} aria-label="Edit player" onClick={openEdit} disabled={statusUnconfirmed||statusBusy}><Pencil size={17}/></button>:null}
     </div>
     <h1>{name}</h1>
     <Link className={styles.insightsLink} href={playerProfileUrl}><Sparkles size={15}/> Player Profile</Link>
     <div className={styles.identityContacts}>{canEdit?<RecordContactActions kind="player" recordId={playerId} name={name} scope={cacheScope} rpc={rpc}/>:null}</div>
     <div className={styles.identityStats}>
-     <div><strong><span className={styles.statusChip} data-status={playerAgencyStatus(identity.agency_status)}>{playerAgencyStatusLabel(identity.agency_status)}</span></strong><span>Status</span></div>
+     <div>
+      <div className={styles.statusPickerAnchor}>
+       {canEdit&&!editing?<button type="button" className={styles.statusPickerTrigger} aria-label={'Change status for '+name} aria-expanded={statusOpen} onClick={statusOpen?()=>{if(!statusBusy&&!statusUnconfirmed)setStatusOpen(false);}:openStatusPicker} disabled={statusBusy||saveBusy}>
+        <span className={styles.statusChip} data-status={playerAgencyStatus(identity.agency_status)}>{playerAgencyStatusLabel(identity.agency_status)}</span>
+        <ChevronDown size={13} aria-hidden="true"/>
+       </button>:<span className={styles.statusChip} data-status={playerAgencyStatus(identity.agency_status)}>{playerAgencyStatusLabel(identity.agency_status)}</span>}
+       {canEdit&&!editing&&statusOpen?<div className={styles.statusPickerPopover} role="group" aria-label="Choose agency status">
+        <p className={styles.statusPickerTitle}>Change agency status</p>
+        <div className={styles.statusPickerChoices}>{PLAYER_AGENCY_STATUSES.map(option=><button type="button" key={option.value} className={styles.statusPickerChoice} aria-pressed={statusDraft===option.value} disabled={statusBusy||statusUnconfirmed} onClick={()=>setStatusDraft(option.value)}>
+         <span className={styles.statusChip} data-status={option.value}>{option.label}</span>
+         {statusDraft===option.value?<Check size={15} aria-hidden="true"/>:null}
+        </button>)}</div>
+        {statusError?<p role="alert" className={styles.statusPickerError}>{statusError}</p>:null}
+        <div className={styles.statusPickerFooter}>
+         <button type="button" onClick={()=>setStatusOpen(false)} disabled={statusBusy||statusUnconfirmed}>Cancel</button>
+         {statusUnconfirmed?<button type="button" onClick={()=>void refreshUnconfirmedStatus()} disabled={statusBusy}>Reload record</button>
+         :<button type="button" onClick={()=>void saveStatus()} disabled={statusBusy||statusDraft===playerAgencyStatus(identity.agency_status)}>{statusBusy?'Saving...':'Save status'}</button>}
+        </div>
+       </div>:null}
+      </div>
+      <span>Status</span>
+     </div>
      <div><strong>{age??'–'}</strong><span>Age</span></div>
      <div><strong>{raw(identity.primary_position)||'–'}</strong><span>Position</span></div>
     </div>
