@@ -143,6 +143,7 @@ export default function PlayerTeamAgentsControl({
  };
  const shown=(data?.available_agents||[]).filter(person=>person.name.toLowerCase().includes(query.trim().toLowerCase()));
  const selectedNames=agents.map(a=>a.name).join(', ');
+ const visibleAvatars=variant==='table'?2:3;
  const label=variant==='table'?(agents.length===1?agents[0].name:agents.length?agents.length+' agents':'Add agents'):
   (agents.length?agents.length+' assigned':'No agents assigned');
  return <span className={styles.root} data-variant={variant}>
@@ -150,13 +151,14 @@ export default function PlayerTeamAgentsControl({
    onClick={event=>{event.stopPropagation();start();}}
    aria-label={'Manage agents for '+playerName} aria-expanded={open}
    title={selectedNames||'Assign agents'} disabled={busy||uncertain}>
-    <span className={styles.stack}>{agents.slice(0,3).map(person=><Avatar key={person.user_id} person={person}/>)}
+    <span className={styles.stack}>{agents.slice(0,visibleAvatars).map(person=><Avatar key={person.user_id} person={person}/>)}
      {!agents.length?<span className={styles.addAvatar}><Plus size={15}/></span>:null}
-     {agents.length>3?<span className={styles.more}>+{agents.length-3}</span>:null}</span>
+     {agents.length>visibleAvatars?<span className={styles.more}>+{agents.length-visibleAvatars}</span>:null}</span>
     <span className={styles.triggerText}>{label}</span>
     <Plus size={14} className={styles.plus} aria-hidden="true"/>
    </button>:<span className={styles.readOnly} aria-label={selectedNames||'No agents assigned'}>
-    <span className={styles.stack}>{agents.slice(0,3).map(person=><Avatar key={person.user_id} person={person}/>)}</span>
+    <span className={styles.stack}>{agents.slice(0,visibleAvatars).map(person=><Avatar key={person.user_id} person={person}/>)}
+     {agents.length>visibleAvatars?<span className={styles.more}>+{agents.length-visibleAvatars}</span>:null}</span>
     <span>{label}</span>
    </span>}
   {notice?<span className={styles.notice} role="status">{notice}</span>:null}
