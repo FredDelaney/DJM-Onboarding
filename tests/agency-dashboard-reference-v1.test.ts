@@ -43,7 +43,7 @@ const rows=(data:any[]=[])=>(new Proxy({},{get(_target,key){
   if(key==='then')return (ok:(result:any)=>void)=>Promise.resolve({data,error:null}).then(ok);
   return ()=>rows(data);
 }}));
-const client={from:(_name:string)=>rows([]),schema:(_schema:string)=>({from:(_name:string)=>rows([])})};
+const client={from:(_name:string)=>rows([]),rpc:async (name:string)=>({data:name==='platform_server_dashboard_sources'?{fixture_links:[],requests:[],tasks:[]}:[],error:null})};
 const context={client,tenantId:UUID_A,userId:UUID_B,role:'admin',scope:'me' as const,localDate:'2026-10-31',timeZone:'Europe/Rome',basePath:'/workspace/djm'};
 test('Snapshot refuses agency scope for unauthorised roles',async()=>{
   await assert.rejects(readAgencyDashboardSnapshot({...context,role:'agent',scope:'agency'}),/dashboard_agency_access_denied/);

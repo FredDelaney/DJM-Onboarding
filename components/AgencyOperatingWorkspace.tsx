@@ -81,7 +81,6 @@ import { brandingForWorkspace } from '@/lib/workspace-branding';
 import { readHomePosition } from '@/lib/read-home-position';
 import { homeReadState, settleHomeReads } from '@/lib/agency-home-state';
 import { homeCommandCategory, homePriorityWeight, isHomePlayerDataReview, isHomeStatisticsReview, isHomeDetailsReview, type HomeQueueCategory } from '@/lib/home-priority';
-import { scheduleWorkspaceWarming } from '@/lib/workspace-prefetch';
 
 import styles from './AgencyOperatingWorkspace.module.css';
 
@@ -144,7 +143,6 @@ type ViewCacheEntry = {
 };
 
 const viewDataCache = new Map<string, ViewCacheEntry>();
-const viewWarmRequests = new Map<string, Promise<void>>();
 const VIEW_CACHE_TTL_MS = 10 * 60_000;
 
 const readViewCache = (key: string) => {
@@ -337,6 +335,7 @@ export default function AgencyOperatingWorkspace() {
       : '';
   const showPlayerProfile =
     Boolean(selectedPlayerId) && search.get('profile') === '1';
+  const dedicatedClubsView = view === 'network' && search.get('clubsv2') === '1';
   const selectedNetworkPersonId =
     view === 'network' ? String(search.get('person') || '').trim() : '';
   const selectedRecruitmentTargetId =
@@ -462,6 +461,8 @@ export default function AgencyOperatingWorkspace() {
       : viewPresentation.title;
   const stateScope = workspace?.tenant_id && sessionUserId
     ? `${workspace.tenant_id}:${sessionUserId}:${workspace.role}` : '';
+  const [openedDayScope, setOpenedDayScope] = useState('');
+  const shouldLoadDay = Boolean(requestedMeetingOutcomeId || (stateScope && openedDayScope === stateScope));
   const canSeeBusiness = ['owner', 'admin'].includes(
     String(workspace?.role || ''),
   );
@@ -570,113 +571,6 @@ export default function AgencyOperatingWorkspace() {
     [workspace?.slug],
   );
 
-  const warmView = useCallback(
-    async (targetView: View, preloadCode = true) => {
-      if (
-        !workspace?.tenant_id ||
-        !workspace?.slug ||
-        targetView === 'business' ||
-        (targetView === 'opportunities' && !['owner','admin'].includes(String(workspace.role)))
-      ) {
-        return;
-      }
-
-      if (preloadCode) preloadWorkspaceView(targetView);
-
-      const cacheKey = [
-        workspace.tenant_id,
-        sessionUserId,
-        workspace.role,
-        targetView,
-        targetView === 'players' ? 'players' : 'main',
-      ].join(':');
-
-      if (readViewCache(cacheKey)) return;
-
-      const existingRequest = viewWarmRequests.get(cacheKey);
-      if (existingRequest) {
-        await existingRequest;
-        return;
-      }
-
-      const request = (async () => {
-        try {
-          if (targetView === 'home') {
-            const home = await readHomePosition(
-              () => invoke<any>('home_focus', {limit:8}),
-              () => rpc<any>('redream_autopilot_home', {p_limit:8}),
-              3000,
-            );
-
-            writeViewCache(cacheKey, { home });
-            return;
-          }
-
-          if (targetView === 'players') {
-            const directory = await readWithDeadline(invoke<any>(
-              'players_workspace',
-              { limit: 100 },
-            ), 3000);
-
-            writeViewCache(cacheKey, {
-              directory: directory?.players || {},
-            });
-            return;
-          }
-
-          if (targetView === 'opportunities') {
-            const market = await readWithDeadline(rpc<any>(
-              'redream_autopilot_market',
-              { p_limit: 100 },
-            ), 3000);
-
-            writeViewCache(cacheKey, {
-              market,
-              connected: {},
-            });
-            return;
-          }
-
-          if (targetView === 'network') {
-            writeViewCache(
-              cacheKey,
-              await readWithDeadline(rpc<any>('redream_autopilot_relationships', {
-                p_limit: 100,
-                p_contact_limit: 250,
-              }), 3000),
-            );
-            return;
-          }
-
-          if (targetView === 'calendar') {
-            // Calendar fetches its own scoped sources. Avoid an unused overview read.
-            return;
-          }
-        } catch {
-          // Warming is opportunistic. The visible view keeps its normal load path.
-        }
-      })();
-
-      viewWarmRequests.set(cacheKey, request);
-
-      try {
-        await request;
-      } finally {
-        if (viewWarmRequests.get(cacheKey) === request) {
-          viewWarmRequests.delete(cacheKey);
-        }
-      }
-    },
-    [
-      invoke,
-      rpc,
-      workspace?.slug,
-      workspace?.tenant_id,
-      sessionUserId,
-      workspace?.role,
-    ],
-  );
-
   const navigateWorkspaceView = useCallback(
     (targetView: View, href: string) => {
       if (typeof window === 'undefined' || href === window.location.pathname + window.location.search) return;
@@ -696,9 +590,9 @@ export default function AgencyOperatingWorkspace() {
       setPlayerServiceReviewRequest(null);
       setDealCloseoutRequest(null);
       setCreateKind(null);
-      if (targetView !== view) void warmView(targetView);
+      if (targetView !== view) preloadWorkspaceView(targetView);
     },
-    [view, warmView],
+    [view],
   );
 
   const resolveWorkspace = useCallback(async () => {
@@ -764,9 +658,16 @@ export default function AgencyOperatingWorkspace() {
     directoryRefreshRef.current = view === 'players' && playersSection === 'players' && !inlineEntityWorkspaceOpen;
     setDirectoryRefreshing(directoryRefreshRef.current);
 
-    if (view === 'players' && inlineEntityWorkspaceOpen) {
+    if ((view === 'players' && inlineEntityWorkspaceOpen) ||
+      (dedicatedClubsView && ['owner','admin'].includes(String(workspace.role)))) {
       setError('');
-      setData({ directory: {}, recruitment: {} });
+      setData(dedicatedClubsView ? {} : { directory: {}, recruitment: {} });
+      setBusy(false);
+      return;
+    }
+    if (view === 'home' && !shouldLoadDay) {
+      setError('');
+      setData(null);
       setBusy(false);
       return;
     }
@@ -778,21 +679,7 @@ export default function AgencyOperatingWorkspace() {
       view,
       view === 'players' ? playersSection : 'main',
     ].join(':');
-    let cached = readViewCache(cacheKey);
-
-    if (!cached) {
-      const warming = viewWarmRequests.get(cacheKey);
-      if (warming) {
-        setError('');
-        setProposal(null);
-        setData(null);
-        setBusy(true);
-        await warming;
-        if (!isCurrent()) return;
-        cached = readViewCache(cacheKey);
-      }
-    }
-
+    const cached = readViewCache(cacheKey);
     const cachedSupportsVisibleView =
       view !== 'opportunities' ||
       (opportunitiesSection === 'deals'
@@ -1019,11 +906,13 @@ export default function AgencyOperatingWorkspace() {
     }
   }, [
     inlineEntityWorkspaceOpen,
+    dedicatedClubsView,
     canCreateRecords,
     invoke,
     opportunitiesSection,
     playersSection,
     rpc,
+    shouldLoadDay,
     view,
     workspace?.role,
     workspace?.tenant_id,
@@ -1130,49 +1019,6 @@ export default function AgencyOperatingWorkspace() {
     if (workspace?.tenant_id) void loadView();
     return () => { loadSequenceRef.current++; };
   }, [loadView, workspace?.tenant_id]);
-
-  useEffect(() => {
-    if (
-      !workspace?.tenant_id ||
-      busy ||
-      inlineEntityWorkspaceOpen
-    ) {
-      return;
-    }
-
-    const targets: View[] = [
-      'home',
-      'players',
-      // Do not speculatively fetch private market data. It is loaded on explicit owner/admin navigation.
-      // Owner-to-staff role changes must not inherit an in-flight market request.
-      'network',
-      'calendar',
-    ].filter((targetView) => targetView !== view) as View[];
-
-    return scheduleWorkspaceWarming(async (canContinue) => {
-      if (!canContinue()) return;
-      const priorityTargets = targets.slice(0, 2);
-      const remainingTargets = targets.slice(2);
-
-      await Promise.allSettled(
-        priorityTargets.map((targetView) => warmView(targetView, false)),
-      );
-
-      for (const targetView of remainingTargets) {
-        if (!canContinue()) return;
-        await warmView(targetView, false);
-        await new Promise((resolve) =>
-          window.setTimeout(resolve, 60),
-        );
-      }
-    });
-  }, [
-    busy,
-    inlineEntityWorkspaceOpen,
-    view,
-    warmView,
-    workspace?.tenant_id,
-  ]);
 
   useEffect(() => {
     if (
@@ -1520,9 +1366,8 @@ export default function AgencyOperatingWorkspace() {
                 prefetch={false}
                 aria-current={item.active ? 'page' : undefined}
                 className={`${item.active ? styles.navActive : ''} ${item.key === 'business' ? styles.navManagement : ''}`}
-                onPointerDown={() => { if (item.view) void warmView(item.view); }}
-                onPointerEnter={() => { if (item.view) void warmView(item.view); }}
-                onFocus={() => { if (item.view) void warmView(item.view); }}
+                onPointerEnter={() => { if (item.view) preloadWorkspaceView(item.view); }}
+                onFocus={() => { if (item.view) preloadWorkspaceView(item.view); }}
                 onClick={(event) => {
                   if (!item.view || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
                   event.preventDefault();
@@ -1681,11 +1526,11 @@ export default function AgencyOperatingWorkspace() {
           </div>
         ) : null}
 
-        {busy && !data ? (
-          <WorkspaceSectionLoading label={view === 'players' && playersSection === 'recruitment' ? 'recruitment' : view === 'home' ? 'your day' : view}/>
+        {busy && !data && view !== 'home' ? (
+          <WorkspaceSectionLoading label={view === 'players' && playersSection === 'recruitment' ? 'recruitment' : view}/>
         ) : null}
 
-        {data ? (
+        {data || view === 'home' ? (
           <div
             className={styles.viewStage}
             key={`view:${stateScope}:${view}:${selectedPlayerId || playersSection}:${opportunitiesSection}`}
@@ -1708,8 +1553,9 @@ export default function AgencyOperatingWorkspace() {
                 agencyName={workspaceName}
                 agencyMark={<TenantWorkspaceBrand branding={agencyBranding} href={basePath} compact />}
                 onCreate={(kind) => setCreateKind(kind)}
+                onOpenYourDay={() => setOpenedDayScope(stateScope)}
               >
-              <Home
+              {data ? <Home
                 rpc={rpc}
                 tenantId={workspace.tenant_id}
                 userId={sessionUserId}
@@ -1726,7 +1572,7 @@ export default function AgencyOperatingWorkspace() {
                 onRecordMeetingOutcome={(meeting) =>
                   setMeetingOutcomeRequest(meeting)
                 }
-              />
+              /> : busy ? <WorkspaceSectionLoading label="your day"/> : null}
               </AgencyDashboardConnected>
             ) : null}
             {!clubAccountRequest && view === 'players' ? (
@@ -1844,7 +1690,7 @@ export default function AgencyOperatingWorkspace() {
           onOpenPlayer={(playerId) => navigateWorkspaceView('players', `${basePath}?view=players&player=${encodeURIComponent(playerId)}`)}
           onOpenContact={(personId) => navigateWorkspaceView('network', `${basePath}?view=network&network=people&person=${encodeURIComponent(personId)}`)}
         />
-            ) : view === 'network' && search.get('clubsv2') === '1' && canSeeBusiness ? (
+            ) : dedicatedClubsView && canSeeBusiness ? (
               <AgencyClubsReference
                 key={stateScope + ':clubs'}
                 invoke={invoke}
@@ -1899,7 +1745,7 @@ export default function AgencyOperatingWorkspace() {
 
       <AgencyMobileNavigation basePath={basePath} workspaceSlug={workspace.slug} view={view} canSeeBusiness={canSeeBusiness} onCaptureCompleted={handleCaptureCompleted}
         search={{tenantId:workspace.tenant_id,userId:sessionUserId,basePath,cacheScope:stateScope,invoke,rpc,seed:{view,data},onCreate:setCreateKind}}
-        onNavigate={navigateWorkspaceView} onWarm={target=>void warmView(target)} onConnections={()=>setConnectionsOpen(true)}/>
+        onNavigate={navigateWorkspaceView} onWarm={preloadWorkspaceView} onConnections={()=>setConnectionsOpen(true)}/>
 
       {connectionsOpen ? (
         <AgencyConnectionsDrawer

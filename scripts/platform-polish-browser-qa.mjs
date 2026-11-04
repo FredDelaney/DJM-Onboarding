@@ -288,7 +288,10 @@ await mkdir(marketingDir,{recursive:true});await cp(new URL('../tests/fixtures/p
      assert.ok(bounds&&bounds.height>=44,'Player open target remains touch-size at '+width);
      if(width<=680)assert.equal(await directory.getByRole('button',{name:'Card view'}).getAttribute('aria-pressed'),'true','Small screens start with cards');
      else await directory.getByRole('table').waitFor();
-     await page.getByRole('region',{name:'Players directory'}).getByRole('heading',{name:'Players',exact:true}).waitFor();
+     const heading=width>=1024
+      ? page.getByRole('heading',{name:'Players',exact:true,level:1})
+      : directory.getByRole('heading',{name:'Players',exact:true});
+     await heading.waitFor();
      assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth-innerWidth<=1),'Player roster has no page overflow at '+width);
     }
     if(suite==='agency'&&screen==='home')assert.doesNotMatch(await page.getByRole('article').filter({has:page.getByRole('button',{name:/^Complete /})}).locator('[class*="_meta"]').allTextContents().then(values=>values.join('\n')),/Waiting\s*Waiting/i,'Home status labels never repeat');

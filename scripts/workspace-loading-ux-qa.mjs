@@ -26,6 +26,7 @@ try {
   if(path.includes('/auth/v1/user'))result=user;
   else if(path.includes('/auth/v1/token'))result=session;
   else if(name==='tenants')result={tenants:[{tenant_id:'00000000-0000-0000-0000-000000000081',slug:'qa-find-flow',role:'owner',display_name:'Selected Fixture Agency',short_name:'Selected Agency'}]};
+  else if(name==='dashboard_snapshot')result={snapshot:{scope:body.scope,localDate:'2026-11-04',timeZone:'UTC',generatedAt:'2026-11-04T12:00:00Z',fixtures:[],clubRequests:[],upcomingEvents:[],recentActivity:[]}};
   else if(name==='home_focus')result={home:{commands:[]}};
   else if(name==='redream_autopilot_operations')result={deadlines:{items:[{entity_type:'club_need',entity_id:'00000000-0000-4000-8000-000000000091',deadline_type:'club_need_expiry',title:'Recorded club need expires',deadline_at:new Date(Date.now()-86400000).toISOString()}]}};
   else if(name==='players_workspace')result={players:{items:[{player_id:'fixture-player',identity:{name:'Example Player',primary_position:'Centre back',current_club:'Example FC',next_action:'Call the club about the trial',next_action_due:'2020-01-01',contract_expiry:'2027-06-30'},service:{next_control_fix:{fix_type:'set_player_next_action',instruction:'Review the representation plan'},next_service_move:{move_type:'maintain_player_plan',instruction:'Agree the next career step with the player'}}}],total:1,has_more:false}};
@@ -80,7 +81,14 @@ const waitForRead=async pending=>{let timer;try{await Promise.race([pending,new 
   ['view=home',['home_focus','redream_autopilot_home']],
  ].filter(([query])=>!process.env.WORKSPACE_LOADING_CASE||query==='view='+process.env.WORKSPACE_LOADING_CASE||(process.env.WORKSPACE_LOADING_CASE==='deals'&&query==='view=opportunities&tab=deals'))) {
   stalled=new Set(names);const pending=new Promise(resolve=>{started=resolve;});
-  await visit(query);await waitForRead(pending);const readStarted=performance.now();
+  const priorHomeReads=reads.filter(name=>name==='home_focus').length;
+  await visit(query);
+  if(query==='view=home'){
+   await page.getByRole('heading',{name:'Club Requests',exact:true}).waitFor({timeout:4000});
+   assert.equal(reads.filter(name=>name==='home_focus').length,priorHomeReads,'Collapsed Your day leaves the dashboard request uncontended');
+   await page.locator('details > summary').filter({hasText:/^Your day/}).click();
+  }
+  await waitForRead(pending);const readStarted=performance.now();
   const calendar=query==='view=calendar';
   const deadlineAlert=page.getByRole('alert').filter({hasText:calendar?'Could not load meetings and agency dates.':'took too long'});
   // Calendar reports its scoped date error without blocking the workspace shell.
@@ -92,23 +100,22 @@ const waitForRead=async pending=>{let timer;try{await Promise.race([pending,new 
   else await page.getByRole('button',{name:'Try again',exact:true}).click();
   await recovered;
   await deadlineAlert.waitFor({state:'hidden'});
-  assert.equal(await page.getByRole('link',{name:'Selected Fixture Agency workspace',exact:true,includeHidden:true}).count(),2,'Both desktop and mobile brand links use the authorised selected agency');
+  const brandHrefs=await page.getByRole('link',{name:'Selected Fixture Agency workspace',exact:true,includeHidden:true}).evaluateAll(links=>links.map(link=>link.getAttribute('href')));
+  assert.ok(brandHrefs.length>=2&&brandHrefs.every(href=>href==='/workspace/qa-find-flow'),'All brand links use the authorised selected agency');
   if(query==='view=home'){await openYourDay();await page.locator('a[href$="&tab=needs&record=00000000-0000-4000-8000-000000000091"]').waitFor();}
   if(query==='view=network')await page.getByRole('heading',{name:'Current Club',exact:true}).waitFor();
   for(const route of held.splice(0))await route.fulfill({contentType:'application/json',body:JSON.stringify({accounts:{clubs:[{organisation_id:'old',name:'Old Club'}]},contacts:{items:[]}})});
   assert.equal(await page.getByRole('heading',{name:'Old Club',exact:true}).count(),0,'Expired reads cannot replace the recovered view');
   console.log('PASS: '+query+' deadline and retry');
  }
- // Navigation must not wait indefinitely for a stalled speculative warm read.
+ // Clubs uses the dedicated directory, even if the separate Contacts read hangs.
  stalled.clear();await visit('view=home');await openYourDay();
- stalled.add('redream_autopilot_relationships');const warmStarted=new Promise(resolve=>{started=resolve;});
- await page.getByRole('link',{name:'Clubs',exact:true}).click();await waitForRead(warmStarted);
+ const relationshipReads=reads.filter(name=>name==='redream_autopilot_relationships').length;
+ stalled.add('redream_autopilot_relationships');
+ await page.getByRole('link',{name:'Clubs',exact:true}).click();
+ await page.getByRole('button',{name:'Current Club',exact:true}).waitFor({timeout:4000});
+ assert.equal(reads.filter(name=>name==='redream_autopilot_relationships').length,relationshipReads);
  stalled.clear();
- await page.getByRole('button',{name:'Current Club',exact:true}).waitFor();
- for(const route of held.splice(0))await route.fulfill({contentType:'application/json',body:JSON.stringify({accounts:{clubs:[{organisation_id:'old',name:'Old Club'}]},contacts:{items:[]}})});
- await page.getByRole('link',{name:'Dashboard',exact:true}).click();await openYourDay();
- await page.getByRole('link',{name:'Clubs',exact:true}).click();await page.getByRole('button',{name:'Current Club',exact:true}).waitFor();
- assert.equal(await page.getByRole('heading',{name:'Old Club',exact:true}).count(),0,'Timed out warming cannot poison the view cache');
  await visit('view=players');
  const directory=page.getByRole('region',{name:'Players directory'});
  const player=directory.getByRole('button',{name:'Open Example Player',exact:true});await player.waitFor();
@@ -136,5 +143,5 @@ const waitForRead=async pending=>{let timer;try{await Promise.race([pending,new 
  assert.equal(await page.getByText('Agree the next career step with the player',{exact:true}).count(),0,'Generic planning cannot masquerade as recorded player work');
  assert.equal(reads.includes('action_prepare'),false,'Opening recorded work never prepares an unrelated setup write');
  assert.deepEqual(errors,[],'No browser runtime failures');
- console.log('PASS: Home, Network, Calendar, Market, Live Deals, Recruitment and Business deadlines, retry, late response rejection and stalled warming recovery.');
+ console.log('PASS: Home, Network, Calendar, Market, Live Deals, Recruitment and Business deadlines, retry, late response rejection and independent dashboard and Clubs loads.');
 }catch(error){console.error('Failed URL:',page?.url(),'Recent reads:',reads.slice(-20));await mkdir('/tmp/redream-ux-pass',{recursive:true});await page?.screenshot({path:'/tmp/redream-ux-pass/loading-failure.png'});throw error;}finally{await browser.close();}

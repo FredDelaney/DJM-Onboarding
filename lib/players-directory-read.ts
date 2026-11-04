@@ -11,7 +11,9 @@ export async function loadPlayersDirectory(
   isCurrent:()=>boolean,
   merge:(patch:Record<string,unknown>)=>void,
 ) {
-  let response=await readWithDeadline(invoke<any>('players_workspace',{limit:100,offset:0}));
+  const firstPage=readWithDeadline(invoke<any>('players_workspace',{limit:100,offset:0}));
+  const recruitment=canSeeRecruitment ? readRecruitmentRoster(invoke) : null;
+  let response=await firstPage;
   let directory=response?.players || {};
   const items=[...(directory.items||[])];
   const wanted=Math.max(100,cachedLength||100);
@@ -24,5 +26,5 @@ export async function loadPlayersDirectory(
     items.push(...(next.items||[]));
   }
   merge({directory:{...directory,items}});
-  if(canSeeRecruitment)merge(await readRecruitmentRoster(invoke));
+  if(recruitment)merge(await recruitment);
 }

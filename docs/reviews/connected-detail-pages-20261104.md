@@ -59,5 +59,6 @@ Remaining screenshot differences include a verified next-match card, a roster St
 
 1. Apply `20261104133424_connect_player_detail_to_club_and_work.sql` and `20261104142417_exact_club_request_pitch_history.sql` in order, using the checks above.
 2. Verify staging's ledger for main's `20261104152422_recruitment_promotion_signed_agency_status.sql`. Apply it in order if pending after reviewing the promotion writer. Then apply `20261104184712_club_request_editor_preferences.sql`. SHA-256 `adf43ce9d1810d45123f3e4ef21c29ef4936df1223491ccd38f223358fac179d`. Check that the create wrapper is service-role only, the patch rejects stale revisions and restricted staff, and reads and assignments stay within the selected tenant.
+   Check the ledger for main's `20261104193315_read_private_dashboard_sources.sql` as well. The matching `agency-os` build uses that reader for dashboard fixtures, requests and tasks.
 3. Deploy `agency-market` and `agency-os` to ReDream staging, then the matching frontend. Confirm that the official transfer-window feed loads from the deployment.
 4. With staging fixtures, create and edit a request, reopen its exact record, and verify assignment, ranges and the shortlist-to-reply journey. Repeat with a restricted staff member and a second tenant to confirm isolation, then verify the modal and timeline on a physical phone.
