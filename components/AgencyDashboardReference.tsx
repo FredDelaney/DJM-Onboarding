@@ -276,9 +276,9 @@ export default function AgencyDashboardReference({
       <section aria-labelledby="dashboard-events-title">
         <div className={styles.sectionTitle}><h3 id="dashboard-events-title"><CalendarClock size={18} aria-hidden="true"/>Upcoming Events</h3><Link href={calendarPage}>Calendar <ChevronRight size={14}/></Link></div>
         <div className={styles.column}>
-          {snapshot.errors?.events?<div className={styles.empty}>Events unavailable</div>:
-           snapshot.upcomingEvents.length===0?<div className={styles.empty}>No upcoming events</div>:
-           snapshot.upcomingEvents.map((event)=>{
+          {snapshot.errors?.events ? <div className={styles.empty}>Some upcoming events are unavailable.</div> :
+            snapshot.upcomingEvents.length===0 ? <div className={styles.empty}>No upcoming events</div> : null}
+          {snapshot.upcomingEvents.map((event)=>{
              const date=readableEventDate(event.date);
              return <SmallLink key={event.id} href={event.href} basePath={basePath}><article className={styles.event}>
                <span className={styles.eventSymbol} data-event-type={event.type} aria-hidden="true">{event.type==='task'||event.type==='meeting'?<Clock3 size={17}/>:eventInitials(event.label)}</span>

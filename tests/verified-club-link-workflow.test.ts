@@ -27,7 +27,7 @@ test('club screen offers a deliberate two-step link confirmation and distinguish
 
 test('club profile replaces the directory inside the main workspace, not below the mobile navigation',()=>{
  const inWorkspace=workspace.indexOf('            {clubAccountRequest ? (');
- const directory=workspace.indexOf("view === 'network' && search.get('clubsv2')");
+ const directory=workspace.indexOf('<AgencyClubsReference',inWorkspace);
  const mobileNav=workspace.indexOf('      <AgencyMobileNavigation');
  assert.ok(inWorkspace>0&&directory>inWorkspace&&mobileNav>directory);
  assert.equal(workspace.match(/<AgencyClubAccountDrawer/g)?.length,1);
