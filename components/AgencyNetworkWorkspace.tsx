@@ -538,6 +538,7 @@ export default function AgencyNetworkWorkspace({
         rpc={rpc}
         scope={stateScope}
         presentation="page"
+        basePath={basePath}
         onClose={closePerson}
         onRefresh={onRefresh}
         onRecordRefresh={onRecordRefresh || onRefresh}

@@ -34,6 +34,7 @@ import PlayerStaffControl from './PlayerStaffControl';
 import PlayerProfilePhoto from './PlayerProfilePhoto';
 import PlayerExperienceDirectory from './PlayerExperienceDirectory';
 import PlayerExperienceDetail from './PlayerExperienceDetail';
+import type {PitchHistoryInvoke} from '@/lib/club-pitch-history';
 import { friendlyError, relativeDate } from '@/lib/platform-client';
 import { prefetchPlayerProfile, invalidatePlayerProfile } from '@/lib/player-profile-cache';
 import { readWithDeadline } from '@/lib/read-with-deadline';
@@ -61,6 +62,7 @@ type Props = {
   data: any;
   basePath: string;
   invoke: Invoke;
+  marketInvoke?: PitchHistoryInvoke;
   rpc: <T,>(name: string, args?: Record<string, unknown>) => Promise<T>;
   onRefresh: () => Promise<void>;
   onLoadMore?: () => Promise<void>;
@@ -543,6 +545,7 @@ export default function AgencyPlayersWorkspace({
   data,
   basePath,
   invoke,
+  marketInvoke,
   rpc,
   onRefresh,
   onOpenAction,
@@ -875,6 +878,7 @@ export default function AgencyPlayersWorkspace({
         basePath={basePath}
         summary={players.find((item:any)=>String(item?.player_id)===currentPromotion.playerId)}
         invoke={invoke} rpc={rpc}
+        marketInvoke={marketInvoke}
         onRefresh={onRecordRefresh||onRefresh}
         onClose={closeTarget}
         onOpenAction={onOpenAction}
@@ -943,6 +947,7 @@ export default function AgencyPlayersWorkspace({
         )}
         basePath={basePath}
         invoke={invoke}
+        marketInvoke={marketInvoke}
         rpc={rpc}
         onRefresh={onRecordRefresh || onRefresh}
         onClose={closePlayer}

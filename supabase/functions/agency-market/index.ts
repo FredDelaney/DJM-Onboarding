@@ -4,6 +4,7 @@ import { createSupabaseContext } from "npm:@supabase/server@1.6.0";
 const cors={"Access-Control-Allow-Origin":"*","Access-Control-Allow-Headers":"authorization, x-client-info, apikey, content-type","Access-Control-Allow-Methods":"POST, OPTIONS"};
 const json=(body:unknown,status=200)=>new Response(JSON.stringify(body),{status,headers:{...cors,"Content-Type":"application/json","Cache-Control":"no-store"}});
 const id=(v:unknown)=>String(v??"").trim();
+const uuid=(v:unknown):v is string=>typeof v==="string"&&/^[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}$/i.test(v);
 const obj=(v:unknown):Record<string,unknown>=>v&&typeof v==="object"&&!Array.isArray(v)?v as Record<string,unknown>:{};
 const clamp=(v:unknown,min:number,max:number,fallback:number)=>Math.max(min,Math.min(max,Number(v??fallback)||fallback));
 type Workspace={tenant_id:string;role:string;is_primary?:boolean;[k:string]:unknown};
@@ -29,6 +30,35 @@ export default {fetch:async(req:Request)=>{
     if(!workspace) return json({error:"tenant_id is required when more than one agency workspace is available",code:"tenant_required"},409);
     const tenantId=String(workspace.tenant_id),role=String(workspace.role||"");
     if(!["owner","admin"].includes(role)) return json({error:"Agency administrator access required",code:"workspace_access_denied"},403);
+
+    if(action==="club_request_pitch_history"||action==="club_request_pitch_reply_record"){
+      const identity={p_tenant_id:tenantId,p_actor_user_id:userId};
+      try{
+        if(action==="club_request_pitch_history"){
+          if(!["request","player","match"].includes(body.scope)||!uuid(body.scope_id))
+            return json({error:"Choose a valid pitch history scope",code:"22023"},400);
+          const history=await rpc("platform_server_club_request_pitch_history",{
+            ...identity,p_scope:body.scope,p_scope_id:body.scope_id,
+          });
+          return json({ok:true,history});
+        }
+        if(!uuid(body.club_need_id)||!uuid(body.share_id)||!uuid(body.command_id)||typeof body.note!=="string")
+          return json({error:"Choose a recorded pitch and enter the reply details",code:"22023"},400);
+        const receipt=await rpc("platform_server_record_club_pitch_staff_reply",{
+          ...identity,p_need_id:body.club_need_id,p_share_id:body.share_id,p_command_id:body.command_id,
+          p_reply_type:id(body.reply_type),p_channel:id(body.channel),p_note:body.note,
+        });
+        return json({ok:true,receipt});
+      }catch(error){
+        const cause=error as {code?:string;message?:string};
+        const commandConflict=cause.code==="40001"&&cause.message==="This reply was already recorded with different details";
+        const status=cause.code==="42501"?403:cause.code==="22023"?400:commandConflict?409:500;
+        return json({
+          error:status===500?"The pitch record could not be confirmed.":cause.message,
+          code:status===500?undefined:cause.code,
+        },status);
+      }
+    }
 
     if(action==="pursuit_salary_review"||action==="pursuit_salary_review_save"){
       const matchId=id(body?.player_match_id);if(!matchId)return json({error:"Choose a player opportunity.",code:"22023"},400);
@@ -106,5 +136,13 @@ export default {fetch:async(req:Request)=>{
       return json({ok:true,tenant:workspace,result:await rpc("platform_server_evaluate_pitch_response_action",{p_tenant_id:tenantId,p_proposal_id:proposalId})});
     }
     return json({error:"Unknown action"},400);
-  }catch(error){const cause=error as {code?:string;message?:string};if(cause?.code==="22023"&&cause.message==="Review base-salary feasibility in this opportunity before preparing a new pitch or deal.")return json({error:"Review current base-salary feasibility before preparing a new pitch or deal.",code:"salary_review_required"},409);console.error("agency-market",error);return json({error:error instanceof Error?error.message:"Agency market request failed"},500);}
+  }catch(error){
+    const cause=error as {code?:string;message?:string};
+    if(cause?.code==="22023"&&cause.message==="Review base-salary feasibility in this opportunity before preparing a new pitch or deal.")
+      return json({error:"Review current base-salary feasibility before preparing a new pitch or deal.",code:"salary_review_required"},409);
+    if(cause?.message==="another_active_pitch_exists_for_player_and_club")
+      return json({error:"This player already has an active pitch link for this club. Review that pitch before publishing another."},409);
+    console.error("agency-market",error);
+    return json({error:error instanceof Error?error.message:"Agency market request failed"},500);
+  }
 }};

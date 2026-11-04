@@ -5,7 +5,7 @@ const root=process.env.WORKSPACE_FLOW_QA_URL||'http://127.0.0.1:3113/workspace/q
 await mkdir('/tmp/redream-athlivo-qa',{recursive:true});
 const browser=await chromium.launch({executablePath:process.env.CALENDAR_CHROMIUM,args:['--no-sandbox','--disable-dev-shm-usage']});
 try{
- for(const width of [1440,390]){
+ for(const width of [1440,768,390,320]){
   const page=await browser.newPage({viewport:{width,height:900}});
   for(let attempt=0;attempt<60;attempt++){try{await page.goto(root+'?view=players');break;}catch(error){if(attempt===59)throw error;await page.waitForTimeout(250);}}
   // Wait for client hydration before clicking; CI Chromium can paint the
@@ -43,10 +43,12 @@ try{
   await directory.getByRole('button',{name:'Open Recruitment Prospect'}).click();
   await page.waitForURL(url=>url.searchParams.get('target')==='qa-target'&&url.searchParams.get('fromRoster')==='1');
   const recruitmentProfile=page.getByRole('region',{name:'Recruitment Prospect player workspace'});
-  await recruitmentProfile.getByRole('heading',{name:'Recruitment Prospect'}).waitFor();
+  const prospectIdentity=recruitmentProfile.getByRole('heading',{name:'Recruitment Prospect'});
+  await prospectIdentity.waitFor();
+  assert.ok(await prospectIdentity.evaluate(heading=>{const rect=heading.getBoundingClientRect();return rect.top>=0&&rect.bottom<=innerHeight;}),'Opening a prospect brings the identity into view');
   await recruitmentProfile.getByText('Prospected',{exact:true}).waitFor();
   await recruitmentProfile.getByRole('heading',{name:'Club Information',exact:true}).waitFor();
-  for(const [tab,heading] of [['Tasks','Tasks'],['Updates','Updates'],['Deals','Shortlisted & Pitched'],['Profile','Club Information']]){
+  for(const [tab,heading] of [['Tasks','Tasks'],['Updates','Updates'],['Deals','Deals'],['Profile','Club Information']]){
    await recruitmentProfile.getByRole('navigation',{name:'Player sections'}).getByRole('button',{name:tab}).click();
    await recruitmentProfile.getByRole('heading',{name:heading,exact:true}).waitFor();
   }
@@ -60,13 +62,28 @@ try{
   const player=page.getByRole('region',{name:'José Silva player workspace'});
   await player.waitFor();
   await player.getByRole('heading',{name:'Club Information',exact:true}).waitFor();
+  assert.ok(await player.getByRole('heading',{name:'José Silva',exact:true}).evaluate(heading=>{const rect=heading.getBoundingClientRect();return rect.top>=0&&rect.bottom<=innerHeight;}),'Opening a player brings the identity into view');
+  assert.equal(await player.getByRole('link',{name:'Player Profile',exact:true}).count(),1);
+  const club=player.getByRole('link',{name:'Verified Club',exact:true});
+  assert.match(await club.getAttribute('href'),/\?view=network&network=clubs&clubsv2=1&club=30000000-0000-4000-8000-000000000011$/);
   await page.screenshot({path:'/tmp/redream-athlivo-qa/player-profile-'+width+'.png',fullPage:false});
   for(const tab of ['Tasks','Updates','Deals','Profile']){
    await player.getByRole('navigation',{name:'Player sections'}).getByRole('button',{name:tab}).click();
-   if(tab==='Tasks')await player.getByRole('heading',{name:'Tasks',exact:true}).waitFor();
+   if(tab==='Tasks'){
+    await player.getByRole('heading',{name:'Tasks',exact:true}).waitFor();
+    const task=player.getByRole('link',{name:'Open task: Review full-match footage',exact:true});
+    assert.match(await task.getAttribute('href'),/\?view=calendar&work=task&task=50000000-0000-4000-8000-000000000011$/);
+    assert.ok((await task.boundingBox()).height>=44);
+   }
    if(tab==='Updates')await player.getByRole('heading',{name:'Updates',exact:true}).waitFor();
-   if(tab==='Deals')await player.getByRole('heading',{name:'Shortlisted & Pitched'}).waitFor();
+   if(tab==='Deals'){
+    await player.getByRole('heading',{name:'Deals',exact:true}).waitFor();
+    const deal=player.getByRole('link',{name:'Open deal: Summer transfer discussion',exact:true});
+    assert.match(await deal.getAttribute('href'),/\?view=opportunities&tab=deals&record=60000000-0000-4000-8000-000000000011$/);
+    assert.ok((await deal.boundingBox()).height>=44);
+   }
    if(tab==='Profile')await player.getByRole('heading',{name:'Club Information',exact:true}).waitFor();
+   assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth+1),'No '+tab+' overflow '+width);
    if(tab!=='Profile')await page.screenshot({path:'/tmp/redream-athlivo-qa/player-'+tab.toLowerCase()+'-'+width+'.png',fullPage:false});
   }
   await player.getByRole('button',{name:'Edit player',exact:true}).click();
@@ -76,5 +93,25 @@ try{
   assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth+1),'No page overflow '+width);
   await page.close();
  }
- console.log('Athlivo-inspired roster and player workspace: table, filters, tabs, edit UI and responsive screenshot checks passed.');
+ const page=await browser.newPage({viewport:{width:390,height:900}});
+ const selected=root+'?view=players&player=qa-player-0';
+ await page.goto(selected+'&scenario=player-record-recovery');
+ await page.getByRole('alert').filter({hasText:'The player record could not be confirmed.'}).waitFor();
+ assert.equal(await page.getByText('Wrong player',{exact:true}).count(),0);
+ assert.equal(await page.getByRole('heading',{name:'Club Information',exact:true}).count(),0);
+ await page.evaluate(()=>{window.qaPlayerReadRecovered=true;});
+ await page.getByRole('button',{name:'Retry',exact:true}).click();
+ await page.getByRole('link',{name:'Verified Club',exact:true}).waitFor();
+
+ await page.goto(selected+'&scenario=player-connections-legacy');
+ await page.getByRole('button',{name:'Tasks',exact:true}).click();
+ await page.getByText('Linked tasks are unavailable here.',{exact:false}).waitFor();
+ assert.equal(await page.getByText('No open linked tasks',{exact:true}).count(),0);
+
+ await page.goto(selected+'&role=agent');
+ await page.getByRole('heading',{name:'Assigned player',exact:true}).waitFor();
+ assert.equal(await page.getByText('Administrator access required',{exact:true}).count(),0);
+ assert.equal(await page.getByRole('navigation',{name:'Player sections'}).count(),0);
+ await page.close();
+ console.log('Player directory and detail: four widths, exact club/task/deal links, recoverable record mismatch, missing task data and assigned-player privacy passed.');
 } finally{await browser.close();}

@@ -50,6 +50,22 @@
   color: #535b65;
 }
 
+.employmentLink {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-height: 44px;
+  max-width: 100%;
+  color: inherit;
+  font-weight: 650;
+  text-underline-offset: 3px;
+  overflow-wrap: anywhere;
+}
+
+.employmentLink svg {
+  flex: none;
+}
+
 .headerIdentity h2 {
   margin: 2px 0 3px;
   color: #252b32;

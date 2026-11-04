@@ -43,7 +43,7 @@ try {
   const {action,body={}}=route.request().postDataJSON();calls.push({action,body});
   let result={};
   if(['player_profile','player_profile_core'].includes(action))result={profile:{player:{id:'fixture-profile',first_name:'Example',last_name:'Player',primary_position:'Centre back',current_club:'Example FC',current_country:'NZ',current_season_label:'2026',profile_photo_path:photo,verification_status:verification,verified_at:verification==='verified'?'2026-10-20T09:00:00Z':null},settings,published:{published:false},career,videos:[],shares:[],deals:[],clubs:[],documents:[],secondary_ready:true,auto_key_stats:[{label:'Apps',value:24},{label:'Goals',value:0}],auto_stats_meta:{season_label:'2026',club_name:'Example FC',league:'Example League',checked_at:'2026-10-20T12:00:00Z',source_name:'Official competition',source_url:'https://example.test/stats'},branding:{support_email:'agent@example.test',light_logo_asset:'https://example.supabase.co/storage/v1/object/public/agency-branding/redream-qa-logo.svg'}}};
-  else if(action==='player_workspace'){const other=body.player_id==='fixture-other';if(other){otherRequested();await new Promise(resolve=>{releaseOther=resolve;});}result={player:{identity:{name:other?'Other Player':workName,primary_position:'Centre back',current_club:'Example FC',profile_photo_path:other?null:photo},profile:{},service:{}}};}
+  else if(action==='player_workspace'){const other=body.player_id==='fixture-other';if(other){otherRequested();await new Promise(resolve=>{releaseOther=resolve;});}result={player:{identity:{id:body.player_id,name:other?'Other Player':workName,primary_position:'Centre back',current_club:'Example FC',profile_photo_path:other?null:photo},profile:{},service:{}}};}
   else if(action==='player_data_status')result={job:null};
   else if(action==='player_profile_photo_begin'){result={upload:{path:'agency/fixture/player/profile.png',token:'fixture-token',expected_photo_path:photo}};}
   else if(action==='player_profile_photo_attach'){if(attachUnconfirmed)return route.fulfill({json:{player:{id:'different-player',profile_photo_path:body.path}}});photo=body.path;verification='reviewing';result={player:{id:'fixture-profile',profile_photo_path:photo,verification_status:verification,verified_at:null}};}
@@ -150,7 +150,7 @@ try {
  assert.equal(uploads,2,'Confirmation retry reuses the uploaded object');assert.equal(calls.filter(c=>c.action==='player_profile_photo_attach').length,3);
  for(const width of [320,390,768,1440]){await page.setViewportSize({width,height:844});assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),'Work view fits '+width);}
  await page.getByRole('button',{name:'Switch player',exact:true}).click();await requestedOther;
- await page.getByText('Loading player...',{exact:true}).waitFor();
+ await page.getByText('Loading player details...',{exact:true}).waitFor();
  assert.equal(await page.getByRole('heading',{name:workName,exact:true}).count(),0,'Previous player details disappear while the new selection loads');
  assert.equal(await page.getByRole('button',{name:'Change player photo',exact:true}).count(),0,'Previous player photo controls cannot target the new selection');
  releaseOther();await page.getByRole('heading',{name:'Other Player',exact:true}).waitFor();

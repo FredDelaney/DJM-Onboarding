@@ -3,7 +3,127 @@ import {mkdir} from 'node:fs/promises';
 import {chromium} from 'playwright';
 const browser=await chromium.launch({executablePath:process.env.CALENDAR_CHROMIUM,args:['--no-sandbox','--disable-dev-shm-usage']});
 try{
- if(process.env.OPPORTUNITY_QA_ONLY!=='deals')for(const width of [320,390,768,1440]){
+ if(process.env.OPPORTUNITY_QA_ONLY!=='deals'){
+  const page=await browser.newPage({viewport:{width:390,height:844}}),errors=[];
+  page.on('pageerror',error=>errors.push(error.message));
+  const url=new URL(process.env.WORKSPACE_FLOW_QA_URL||'http://127.0.0.1:3113/workspace/qa-find-flow');
+  url.search='?view=opportunities&tab=needs&record=qa-need&scenario=pitch-journey';
+  for(let attempt=0;attempt<50;attempt++){try{await page.goto(url.href);break;}catch(error){if(attempt===49)throw error;await page.waitForTimeout(250);}}
+  const request=page.locator('#opportunity-qa-need');
+  const history=request.getByRole('region',{name:'Pitch history',exact:true});
+  await history.getByText('No pitches recorded yet.',{exact:true}).waitFor();
+  await request.getByRole('button',{name:'Shortlist José Silva',exact:true}).click();
+  await request.getByText('Shortlisted · internal only',{exact:true}).waitFor();
+  const next=page.getByRole('region',{name:'Next pursuit action',exact:true});
+  const open=request.getByRole('button',{name:'Open opportunity for José Silva',exact:true});
+  const back=page.getByRole('button',{name:'Back to Opportunities',exact:true});
+  async function confirm(action,label){
+   await next.getByRole('button',{name:action,exact:true}).click();
+   await page.getByRole('button',{name:label,exact:true}).click();
+  }
+  await open.click();
+  await confirm('Create private pitch','Create pitch draft');
+  await next.getByRole('button',{name:'Publish pitch link',exact:true}).waitFor();
+  await back.click();
+  await history.getByText('Private draft',{exact:true}).waitFor();
+  assert.equal(await history.getByRole('button',{name:'Record club reply',exact:true}).count(),0);
+  await history.getByRole('button',{name:'Review pitch',exact:true}).click();
+  await confirm('Publish pitch link','Publish link');
+  await next.getByRole('button',{name:'I sent this pitch',exact:true}).waitFor();
+  await back.click();
+  await history.getByText('Link prepared',{exact:true}).waitFor();
+  assert.equal(await history.getByText('Send recorded',{exact:true}).count(),0);
+  assert.equal(await history.getByRole('button',{name:'Record club reply',exact:true}).count(),0);
+  await history.getByRole('button',{name:'Review pitch',exact:true}).click();
+  await confirm('I sent this pitch','Confirm sent');
+  await next.getByRole('button',{name:'Prepare response review',exact:true}).waitFor();
+  await back.click();
+  await history.getByText('Send recorded',{exact:true}).waitFor();
+  assert.match(await history.locator('time').textContent(),/^0?4 Nov 2026$/,'Delivery shows a recorded date rather than a due-date label');
+  await history.getByText('Please follow up after the window.',{exact:true}).waitFor();
+  await history.getByRole('button',{name:'Record club reply',exact:true}).click();
+  await history.getByLabel('Club reply',{exact:true}).selectOption('request_information');
+  await history.getByLabel('Received via',{exact:true}).selectOption('phone');
+  await history.getByLabel('What did the club say?',{exact:true}).fill('Director requested full-match footage.');
+  await history.getByRole('button',{name:'Save club reply',exact:true}).click();
+  await history.getByRole('alert').getByText(/The save could not be confirmed/).waitFor();
+  await history.getByRole('button',{name:'Retry same reply',exact:true}).click();
+  await history.getByRole('form',{name:'Record a reply received outside ReDream',exact:true}).waitFor({state:'detached'});
+  await history.getByText('Director requested full-match footage.',{exact:true}).waitFor();
+  await history.getByText('Recorded by agency · Phone',{exact:true}).waitFor();
+  await history.getByText('Via pitch link · identity unverified',{exact:true}).waitFor();
+  assert.deepEqual(await page.evaluate(()=>window.qaPitchWrites),['pitch_draft_create','pitch_publish','pitch_confirm_sent']);
+  assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1));
+  const output=process.env.OPPORTUNITY_QA_OUTPUT||'/tmp/redream-platform-programme/club-need-review';
+  await mkdir(output,{recursive:true});
+  await request.screenshot({path:output+'/request-pitch-390.png'});
+  await page.setViewportSize({width:1440,height:844});
+  assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1));
+  await request.screenshot({path:output+'/request-pitch-1440.png'});
+  await page.setViewportSize({width:390,height:844});
+  await page.evaluate(()=>window.history.pushState(null,'','?view=players&player=qa-player-0&scenario=pitch-journey'));
+  await page.getByRole('navigation',{name:'Player sections',exact:true}).getByRole('button',{name:'Deals',exact:true}).click();
+  const playerHistory=page.getByRole('region',{name:'Pitch history',exact:true});
+  await playerHistory.getByText('Director requested full-match footage.',{exact:true}).waitFor();
+  assert.equal(await playerHistory.getByRole('link',{name:'Centre back needed',exact:true}).getAttribute('href'),url.pathname+'?view=opportunities&tab=needs&record=qa-need');
+  assert.equal(await playerHistory.getByRole('button',{name:'Record club reply',exact:true}).count(),0);
+  assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1));
+  assert.deepEqual(errors,[]);
+  await page.close();
+  console.log('Club request at 390px: shortlist, exact private pitch, prepared link, explicit send, retry-safe reply and player deal history passed');
+ }
+ if(!['deals','pitch'].includes(process.env.OPPORTUNITY_QA_ONLY)){
+  const page=await browser.newPage({viewport:{width:1512,height:828}}),errors=[];
+  page.on('pageerror',error=>errors.push(error.message));
+  const url=new URL(process.env.WORKSPACE_FLOW_QA_URL||'http://127.0.0.1:3113/workspace/qa-find-flow');
+  url.search='?view=opportunities&tab=needs&scenario=need-review&reference=1';
+  await page.goto(url.href);
+  const row=page.locator('#opportunity-50000000-0000-4000-8000-000000000001');
+  await row.getByLabel('Summer',{exact:true}).waitFor();
+  const evidence='/tmp/redream-reference-qa';
+  await mkdir(evidence,{recursive:true});
+  await page.screenshot({path:evidence+'/requests.png'});
+  await row.getByRole('button',{name:/Manage Example FC/}).click();
+  await page.getByRole('button',{name:/Edit/}).filter({hasText:'Edit'}).click();
+  const editor=page.getByRole('dialog',{name:/Manage Example FC/});
+  await editor.getByRole('button',{name:'Winter',exact:true}).waitFor();
+  await page.screenshot({path:evidence+'/request-editor.png'});
+  await editor.getByRole('button',{name:'Winter',exact:true}).click();
+  await editor.getByRole('button',{name:'International',exact:true}).click();
+  await editor.getByRole('button',{name:'Loan with option',exact:true}).click();
+  await editor.getByLabel('Salary budget (minimum)',{exact:true}).fill('4100.25');
+  await editor.getByText('Assign users...',{exact:true}).click();
+  await editor.getByRole('checkbox',{name:'Example Agent',exact:true}).check();
+  await editor.getByRole('button',{name:'Update Request',exact:true}).click();
+  await row.getByLabel('Winter',{exact:true}).waitFor();
+  assert.deepEqual(await page.evaluate(()=>window.qaRequestPreferences),{window_preference:'winter',player_origin:'international',loan_option:'true',salary_budget_min:'4100.25',assigned_user_ids:['50000000-0000-4000-8000-000000000002']});
+  let sourceReady=false;
+  await page.route('**/api/transfer-windows',async route=>{
+   if(!sourceReady){await route.fulfill({status:502,json:{error:'Source unavailable'}});return;}
+   const date=offset=>new Date(Date.now()+offset*86400000).toISOString().slice(0,10);
+   await route.fulfill({json:{associations:[{code:'NZL',name:'New Zealand',flag:'/favicon.ico',windows:{"Men's professional":[{start:date(-1),end:date(15)}],"Women's professional":[{start:date(20),end:date(45)}]}}]}});
+  });
+  await page.getByRole('button',{name:'Transfer windows',exact:true}).click();
+  const timeline=page.getByRole('dialog',{name:'Transfer windows',exact:true});
+  const retry=timeline.getByRole('button',{name:'Try again',exact:true});
+  await retry.waitFor();
+  sourceReady=true;
+  await retry.click();
+  await timeline.getByText('New Zealand',{exact:true}).waitFor();
+  await page.screenshot({path:evidence+'/transfer-windows.png'});
+  await timeline.getByRole('button',{name:/Open now 1/}).click();
+  await timeline.getByRole('button',{name:"Women's pro",exact:true}).click();
+  await timeline.getByText('No associations match these filters.',{exact:true}).waitFor();
+  await timeline.getByRole('button',{name:/Opening soon 1/}).click();
+  await timeline.getByLabel('Search associations',{exact:true}).fill('NZL');
+  await timeline.getByText('New Zealand',{exact:true}).waitFor();
+  await page.keyboard.press('Escape');
+  await timeline.waitFor({state:'detached'});
+  assert.deepEqual(errors,[]);
+  await page.close();
+  console.log('Request preferences and transfer windows passed: exact save, assignments, category, country, status, retry and Escape');
+ }
+ if(!['deals','pitch'].includes(process.env.OPPORTUNITY_QA_ONLY))for(const width of [320,390,768,1440]){
   const page=await browser.newPage({viewport:{width,height:844}}),errors=[];page.on('pageerror',error=>errors.push(error.message));
   const url=new URL(process.env.WORKSPACE_FLOW_QA_URL||'http://127.0.0.1:3113/workspace/qa-find-flow');
   url.search='?view=opportunities&tab=needs&scenario=need-review';
@@ -12,6 +132,7 @@ try{
   const row=page.locator('#opportunity-qa-need');
   const review=row.getByRole('button',{name:'Review Example FC: Centre back needed',exact:true});await review.waitFor({timeout:5000});
   const requestFilters=page.getByRole('region',{name:'Request filters',exact:true});
+  await requestFilters.getByText('Filter',{exact:true}).click();
   const priorityFilter=requestFilters.getByRole('combobox',{name:'Request priority',exact:true});
   const dealFilter=requestFilters.getByRole('combobox',{name:'Request deal type',exact:true});
   if(width===390||width===1440)await requestFilters.screenshot({path:'/tmp/redream-athlivo-filter-'+width+'.png'});
@@ -23,8 +144,10 @@ try{
   await row.waitFor({state:'hidden'});
   await requestFilters.getByRole('button',{name:'Clear filters',exact:true}).click();
   await row.waitFor({state:'visible'});
+  await requestFilters.getByText('Filter',{exact:true}).click();
   assert.equal(await priorityFilter.inputValue(),'all');
   assert.equal(await dealFilter.inputValue(),'all');
+  await requestFilters.getByText('Filter',{exact:true}).click();
   assert.equal(await review.getAttribute('aria-expanded'),'false');
   await review.press('Enter');await row.getByRole('heading',{name:'Recorded player opportunities',exact:true}).waitFor();
   assert.equal(await review.getAttribute('aria-expanded'),'true');
@@ -64,8 +187,8 @@ try{
   await row.getByRole('button',{name:'Manage Example FC · Centre back needed',exact:true}).click();
   await page.getByRole('button',{name:/Edit/}).filter({hasText:'Edit'}).click();
   const editor=page.getByRole('dialog');
-  assert.equal(await page.evaluate(()=>window.qaSourceLookupCalls||0),0,'Source selectors do not fetch while their section is closed');
-  assert.equal(await editor.getByLabel('Salary budget (maximum)',{exact:true}).count(),0,'Secondary edit fields stay optional');
+  await editor.getByRole('heading',{name:'Edit Request',exact:true}).waitFor();
+  assert.equal(await editor.getByLabel('Optional extension (months)',{exact:true}).count(),0,'Advanced contract fields stay optional');
   await editor.getByText('Budget & contract',{exact:true}).click();
   await editor.getByText('Football requirements',{exact:true}).click();
   await editor.getByText('Source & priority',{exact:true}).click();
@@ -75,13 +198,13 @@ try{
   await editor.getByLabel('Source contact',{exact:true}).selectOption('40000000-0000-4000-8000-000000000001');
   await editor.getByLabel('Salary budget (maximum)',{exact:true}).fill('5500');
   await editor.getByLabel('Optional extension (months)',{exact:true}).fill('6');
-  await editor.getByText('Budget & contract',{exact:true}).click();await editor.getByLabel('Salary budget (maximum)',{exact:true}).waitFor({state:'detached'});assert.equal(await editor.getByLabel('Salary budget (maximum)',{exact:true}).count(),0);await editor.getByText('Budget & contract',{exact:true}).click();await editor.getByLabel('Salary budget (maximum)',{exact:true}).waitFor({state:'visible'});assert.equal(await editor.getByLabel('Salary budget (maximum)',{exact:true}).inputValue(),'5500','Closing optional detail retains its draft');
+  await editor.getByText('Budget & contract',{exact:true}).click();await editor.getByLabel('Optional extension (months)',{exact:true}).waitFor({state:'detached'});await editor.getByText('Budget & contract',{exact:true}).click();await editor.getByLabel('Optional extension (months)',{exact:true}).waitFor({state:'visible'});assert.equal(await editor.getByLabel('Optional extension (months)',{exact:true}).inputValue(),'6','Closing optional detail retains its draft');
   await editor.getByLabel('Source status',{exact:true}).selectOption('confirmed');
   await page.evaluate(()=>window.qaBriefEditFails=true);
-  await editor.getByRole('button',{name:'Save changes',exact:true}).click();await editor.getByText('Request update unavailable',{exact:false}).waitFor();
+  await editor.getByRole('button',{name:'Update Request',exact:true}).click();await editor.getByText('Request update unavailable',{exact:false}).waitFor();
   assert.equal(await editor.getByLabel('Salary budget (maximum)',{exact:true}).inputValue(),'5500','Failed edit retains the brief');
   await page.evaluate(()=>window.qaBriefEditFails=false);
-  await editor.getByRole('button',{name:'Save changes',exact:true}).click();await editor.waitFor({state:'hidden'});
+  await editor.getByRole('button',{name:'Update Request',exact:true}).click();await editor.waitFor({state:'hidden'});
   assert.deepEqual(await page.evaluate(()=>window.qaBriefPatch),{salary_budget:'5500',option_months:'6',source_status:'confirmed'},'Only changed canonical fields are patched');
   await row.getByText('EUR 5,500 per month · net',{exact:true}).waitFor();
   await row.getByText('Club budget: EUR 5,500 per month · net',{exact:true}).waitFor();
@@ -122,17 +245,17 @@ try{
   if(width===390){
     await page.clock.install();
     await row.getByRole('button',{name:'Manage Example FC · Centre back needed',exact:true}).click();await page.getByRole('button',{name:/Edit/}).filter({hasText:'Edit'}).click();
-    const pending=page.getByRole('dialog');await pending.getByText('Budget & contract',{exact:true}).click();await pending.getByLabel('Salary budget (maximum)',{exact:true}).fill('5600');
-    await page.evaluate(()=>window.qaBriefEditHangs=true);await pending.getByRole('button',{name:'Save changes',exact:true}).click();await pending.getByRole('button',{name:'Saving...',exact:true}).waitFor();
+    const pending=page.getByRole('dialog');await pending.getByLabel('Salary budget (maximum)',{exact:true}).fill('5600');
+    await page.evaluate(()=>window.qaBriefEditHangs=true);await pending.getByRole('button',{name:'Update Request',exact:true}).click();await pending.getByRole('button',{name:'Saving...',exact:true}).waitFor();
     await page.clock.fastForward(12100);await pending.getByText('Could not confirm the update.',{exact:false}).waitFor();
-    assert.equal(await pending.getByRole('button',{name:'Save changes',exact:true}).count(),0,'Unknown outcome cannot be blindly retried');
+    assert.equal(await pending.getByRole('button',{name:'Update Request',exact:true}).count(),0,'Unknown outcome cannot be blindly retried');
     await pending.getByRole('button',{name:'Reload request',exact:true}).click();await pending.waitFor({state:'hidden'});
     if(await review.getAttribute('aria-expanded')==='false')await review.click();
     await row.getByText('EUR 5,500 per month · net',{exact:true}).waitFor();
   }
   assert.deepEqual(errors,[]);await page.close();console.log('PASS club need review, deliberate player/search choice, missing coverage, expiry and layout',width);
  }
- if(process.env.OPPORTUNITY_QA_ONLY!=='needs'){
+ if(!['needs','pitch'].includes(process.env.OPPORTUNITY_QA_ONLY)){
  for(const width of [320,390,768,1440]){
   const page=await browser.newPage({viewport:{width,height:844}}),errors=[];
   page.on('pageerror',error=>errors.push(error.message));

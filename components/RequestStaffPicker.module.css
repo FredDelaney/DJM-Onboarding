@@ -1,0 +1,10 @@
+.picker { min-width: 0; margin: 0; padding: 0; border: 0; }
+.picker legend { margin-bottom: 8px; color: #172338; font-size: 14px; font-weight: 550; }
+.picker details { border: 1px solid #dfe5ec; border-radius: 12px; padding: 0 10px; }
+.picker summary { cursor: pointer; padding: 12px 3px; color: #526781; font-size: 14px; }
+.picker details label { display: flex; align-items: center; gap: 8px; font-size: 14px; }
+.picker details input[type=search] { width: 100%; padding: 9px; min-height: 44px; border: 1px solid #dfe5ec; border-radius: 9px; font-size: 16px; }
+.picker .members { max-height: 200px; overflow: auto; }
+.picker .members label { min-height: 44px; padding: 4px 2px; cursor: pointer; }
+.picker .members input[type=checkbox] { width: 17px; height: 17px; min-height: 17px; accent-color: var(--agency-primary,#3388fb); }
+.picker button { min-height: 44px; border: 0; background: transparent; color: #235b9a; cursor: pointer; }

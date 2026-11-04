@@ -550,7 +550,8 @@ export default {fetch:async(req:Request)=>{
     }
     if(action==="create_club_need_brief"){
       if(!operator()) return deny("Agency operator access required");
-      return result("created","platform_server_agency_create_club_need_brief",{p_tenant_id:tenantId,p_actor_user_id:userId,p_request:body});
+      const writer=body.preferences===undefined?"platform_server_agency_create_club_need_brief":"platform_server_create_club_need_v2";
+      return result("created",writer,{p_tenant_id:tenantId,p_actor_user_id:userId,p_request:body});
     }
     if(action==="club_request_options"){
       if(!ownerAdmin()) return deny("Agency administrator access required");

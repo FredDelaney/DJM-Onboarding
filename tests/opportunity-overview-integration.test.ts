@@ -6,7 +6,7 @@ test('new overview is opt-in until real agency acceptance',()=>{
   assert.match(src,/value === 'overview'/);
   assert.match(src,/AgencyOpportunityOverview/);
   assert.match(src,/view === 'overview' \? <AgencyOpportunityOverview/);
-  assert.match(src,/view !== 'overview' \? <section className=\{styles\.listCard\}>/);
+  assert.match(src,/view !== 'overview' \? <section className=\{\`\$\{styles\.listCard\}/);
   assert.match(src,/\? value : 'needs'/);
 });
 

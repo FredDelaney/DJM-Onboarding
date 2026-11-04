@@ -1613,6 +1613,7 @@ export default function AgencyOperatingWorkspace() {
                   data={data}
                   basePath={basePath}
                   invoke={invoke}
+                  marketInvoke={marketInvoke}
                   rpc={rpc}
                   onRefresh={loadView}
                   onLoadMore={loadMorePlayers}
@@ -1624,8 +1625,11 @@ export default function AgencyOperatingWorkspace() {
             {!clubAccountRequest && view === 'opportunities' && canSeeBusiness ? (
               <AgencyOpportunitiesWorkspace
                 onRecordRefresh={refreshRecords}
+                onCreateNeed={canCreateRecords ? () => setCreateKind('club_need') : undefined}
+                recordRefreshKey={recordRefreshRevision}
                 key={stateScope}
                 invoke={invoke}
+                marketInvoke={marketInvoke}
                 onRetry={() => void loadView()}
                 onRefresh={loadView}
                 rpc={rpc}
@@ -1792,6 +1796,7 @@ export default function AgencyOperatingWorkspace() {
         <AgencyCreateDrawer
           key={`create:${stateScope}:${createKind}`}
           kind={createKind}
+          requestRpc={canSeeBusiness?rpc:undefined}
           theme={theme}
           prefillClub={clubAccountRequest && ['contact','club_need','deal','player'].includes(createKind) ? {name:clubAccountRequest.title,country:clubAccountRequest.country||undefined,organisationId:clubAccountRequest.organisationId}:undefined}
           invoke={(action, body) => invoke<any>(action, body)}
@@ -1903,6 +1908,7 @@ export default function AgencyOperatingWorkspace() {
             });
           }}
           onApplied={async () => {
+            setRecordRefreshRevision(value => value + 1);
             await loadView();
           }}
         />

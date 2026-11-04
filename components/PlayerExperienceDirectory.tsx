@@ -1,6 +1,6 @@
 'use client';
 
-import {ArrowDown, ArrowUp, CalendarDays, ChevronDown, ChevronRight, Columns3, Filter, Flag, Globe2, LayoutGrid, List, LoaderCircle, MapPin, Plus, Search, ShieldCheck, Shirt, Target, Users, X} from 'lucide-react';
+import {ArrowDown, ArrowLeft, ArrowUp, CalendarDays, ChevronDown, ChevronRight, Columns3, Filter, Flag, Globe2, LayoutGrid, List, LoaderCircle, MapPin, Plus, Search, ShieldCheck, Shirt, Target, Users, X} from 'lucide-react';
 import {useEffect, useMemo, useState} from 'react';
 import {publicFile} from '@/lib/supabase';
 import ClubIdentityMark,{CountryFlag} from './ClubIdentityMark';
@@ -72,7 +72,7 @@ export default function PlayerDirectory({players,total,hasMore,search,onSearch,o
  },[]);
  const [columns,setColumns]=useState<Col[]>(allColumns.map(item=>item.id));
  const [filters,setFilters]=useState<Record<FilterKey,string>>(initialFilters);
- const [filterCategory,setFilterCategory]=useState<FilterKey>('agent');
+ const [filterCategory,setFilterCategory]=useState<FilterKey|null>(null);
  const setFilter=(key:FilterKey,value:string)=>setFilters(current=>({...current,[key]:value}));
  const [sort,setSort]=useState<'name'|'age'|'club'>('name');
  const [ascending,setAscending]=useState(true);
@@ -138,15 +138,16 @@ export default function PlayerDirectory({players,total,hasMore,search,onSearch,o
   </div>
   <div className={styles.listTools}>
    <details className={styles.toolDropdown}><summary><Columns3 size={17}/> Columns <ChevronDown size={13}/></summary><div className={styles.toolPopover}>{allColumns.map(col=><label key={col.id}><input type="checkbox" checked={included(col.id)} onChange={()=>toggleColumn(col.id)}/>{col.label}</label>)}</div></details>
-   <details className={styles.toolDropdown}><summary><Filter size={17}/> Filter {filterCount?<strong>{filterCount}</strong>:null}<ChevronDown size={13}/></summary>
+   <details className={styles.toolDropdown} onToggle={event=>{if(!event.currentTarget.open)setFilterCategory(null);}}><summary><Filter size={17}/> Filter {filterCount?<strong>{filterCount}</strong>:null}<ChevronDown size={13}/></summary>
     <div className={styles.advancedFilter} aria-label="Player filters">
-     <div className={styles.filterCategories}>{filterCategories.map(category=>{
+     {!filterCategory?<div className={styles.filterCategories}>{filterCategories.map(category=>{
       const Icon=category.icon;
       return <button type="button" key={category.key} aria-pressed={filterCategory===category.key} onClick={()=>setFilterCategory(category.key)}>
        <Icon size={16}/><span>{category.label}</span>{filters[category.key]?<i className={styles.filterDot} aria-label="Active filter"/>:null}<ChevronRight size={15}/>
       </button>;
-     })}<small>{filterCategories.length} filter categories</small></div>
+     })}<small>{visible.length} of {total} players</small></div>:
      <div className={styles.filterDetail}>
+      <button type="button" onClick={()=>setFilterCategory(null)}><ArrowLeft size={15}/> All filters</button>
       <strong>{filterCategories.find(category=>category.key===filterCategory)?.label}</strong>
       <label className={styles.filterControl}>Show players
        <select aria-label={filterCategory==='status'?'Agency status filter':'Filter '+filterCategory} value={filters[filterCategory]} onChange={event=>setFilter(filterCategory,event.target.value)}>
@@ -156,7 +157,7 @@ export default function PlayerDirectory({players,total,hasMore,search,onSearch,o
       </label>
       <p>{filterCategory==='agent'?'Filter by any agent assigned to this player, including the lead.':filterCategory==='agencyContract'?'Uses the recorded active agency agreement, where available.':'Uses the information recorded for each player.'}</p>
       {filters[filterCategory]?<button type="button" onClick={()=>setFilter(filterCategory,'')}>Remove this filter</button>:null}
-     </div>
+     </div>}
     </div>
    </details>
    {(filterCount||search)?<button type="button" className={styles.clearFilters} onClick={clear}>Clear all</button>:null}

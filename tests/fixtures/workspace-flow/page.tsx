@@ -12,6 +12,7 @@ import PeopleViewSwitcher from '@/components/PeopleViewSwitcher';
 import AgencyPlayersWorkspace from '@/components/AgencyPlayersWorkspace';
 import AgencyNetworkWorkspace from '@/components/AgencyNetworkWorkspace';
 import AgencyOpportunitiesWorkspace from '@/components/AgencyOpportunitiesWorkspace';
+import AgencyPursuitRoom,{type AgencyPursuitRequest} from '@/components/AgencyPursuitRoom';
 import AgencyPlayerProfile from '@/components/AgencyPlayerProfile';
 import AgencyActionDrawer,{type AgencyActionRequest} from '@/components/AgencyActionDrawer';
 import {TenantRuntimeProvider} from '@/components/TenantRuntimeProvider';
@@ -19,14 +20,25 @@ import {UNRESOLVED_TENANT_RUNTIME} from '@/lib/tenant-runtime';
 import styles from '@/components/AgencyOperatingWorkspace.module.css';
 import {buildSearchItems,searchWorkspaceItems,filterArchivedSearchItems} from '@/lib/workspace-search';
 const base='/workspace/qa-find-flow';
+const pitchMatch='60000000-0000-4000-8000-000000000001';
+const referenceNeed='50000000-0000-4000-8000-000000000001';
+const referenceMember='50000000-0000-4000-8000-000000000002';
+const pitchShare='70000000-0000-4000-8000-000000000001';
 export default function Page(){
  const params=useSearchParams(),user=params.get('user')||'a',scenario=params.get('scenario')||'normal',tenant=params.get('tenant')||'a';
  const fixtureRole=params.get('role')||'owner';
  const fixtureOwner=params.get('owner')==='long'?'Alexandros Konstantinopoulos-MacDonald':'';
  const profileOwner=params.get('owner')==='missing'?null:fixtureOwner||'Example Agent';
  const scope='fixture-tenant-'+tenant+':fixture-user-'+user+':'+fixtureRole+':'+scenario,view=params.get('view')||'players',playerId=params.get('player')||'';
+ const requestReference=params.get('reference')==='1';
+ const requestPrefs=useRef<Record<string,unknown>>({window_preference:'summer',player_origin:'any',salary_budget_min:'4000',assigned_user_ids:[]});
  const [briefPatch,setBriefPatch]=useState<Record<string,unknown>>({});
  const [shortlisted,setShortlisted]=useState(false);
+ const pitchJourney=scenario==='pitch-journey';
+ const [pursuit,setPursuit]=useState<AgencyPursuitRequest|null>(null);
+ const [pitchRevision,setPitchRevision]=useState(0);
+ const pitchState=useRef<'none'|'draft'|'ready'|'sent'>('none');
+ const staffReply=useRef<{command:string;response_type:string;channel:string;message:string}|null>(null);
  const [created,setCreated]=useState(''),[otherDialog,setOtherDialog]=useState(false),reads=useRef<Record<string,number>>({});
  const [loaded,setLoaded]=useState(100);useEffect(()=>setLoaded(100),[user]);
  const [clubRequest,setClubRequest]=useState<any>(null),[dealRequest,setDealRequest]=useState<any>(null);
@@ -44,23 +56,67 @@ export default function Page(){
   accounts:{clubs:[{organisation_id:'qa-club',name:'Example FC',country:'NZ',league_name:'Regional League',access:{direct_score:80}}]},
   contacts:{items:[{person_id:'qa-contact',person:{full_name:'Dapo Director'},employment:{organisation_id:'qa-club',organisation_name:'Example FC',role_title:'Director'},relationship:{route_score:80}},{person_id:'qa-scout',person:{full_name:'Moses Scout'},employment:{organisation_name:'Other FC',role_title:'Scout'},relationship:{route_score:30}}]},
   market:{demand:{items:scenario==='need-review'?[
-   {club_need_id:'qa-need',need:{title:'Centre back needed',status:'active',position:'Centre back',preferred_foot:'Left',min_height_cm:185,transfer_type:'permanent',expires_at:'2099-06-30',min_age:18,max_age:26,level_requirements:'Senior first-team experience',nationality_preferences:['Portugal','New Zealand'],passport_requirements:'EU passport',registration_notes:'Before 30 June',source_person_id:'40000000-0000-4000-8000-000000000001',source_person_name:'Source Director',source_organisation_id:'30000000-0000-4000-8000-000000000003',source_organisation_name:'Source Agency',received_on:'2026-10-20',priority:4,updated_at:'2026-10-28T16:00:00.123456Z',salary_budget:'5000',currency:'EUR',salary_period:'monthly',salary_tax_basis:'net',contract_months:12,contract_guaranteed:true,option_months:12,source_status:'reported',availability_notes:'Join quickly',raw_request:'Original striker request, €5,000 monthly, 12 + 12.',...briefPatch,profile_notes:'Build from the back. Review current full-match footage before progressing. '+ 'LongRequirement'.repeat(12)},club:{name:'Example FC',organisation_id:'qa-club'},candidate_coverage:{recorded_candidates:5,candidates:[{player_name:'First Recorded Player',salary_check:{version:1,state:'minimum_above_budget',message:'The recorded salary minimum exceeds the club base-salary budget.',hard_conflict:briefPatch.source_status==='confirmed',needs_source_confirmation:briefPatch.source_status!=='confirmed',player_minimum:'5500.01',player_target:'6000',player_currency:'EUR',player_period:'monthly',player_tax_basis:'net',club_budget:String(briefPatch.salary_budget??'5000'),club_currency:'EUR',club_period:'monthly',club_tax_basis:'net',source_status:'confirmed',checked_on:'2026-10-28'},player_match_id:'60000000-0000-4000-8000-000000000001',player_id:'first-player',match_status:shortlisted?'shortlisted':'suggested',career_gate_state:'review_evidence',career_gate_reason:'Review the recorded evidence.'},{player_name:'Chosen Player',player_match_id:'chosen-match',player_id:'chosen-player',career_gate_state:'hold_player_decision',career_gate_reason:'Confirm the player’s preference.'},{player_name:'Unlinked Candidate'}]}},
+   {club_need_id:requestReference?referenceNeed:'qa-need',need:{title:'Centre back needed',status:'active',position:'Centre back',preferred_foot:'Left',min_height_cm:185,transfer_type:'permanent',expires_at:'2099-06-30',min_age:18,max_age:26,level_requirements:'Senior first-team experience',nationality_preferences:['Portugal','New Zealand'],passport_requirements:'EU passport',registration_notes:'Before 30 June',source_person_id:'40000000-0000-4000-8000-000000000001',source_person_name:'Source Director',source_organisation_id:'30000000-0000-4000-8000-000000000003',source_organisation_name:'Source Agency',received_on:'2026-10-20',priority:4,updated_at:'2026-10-28T16:00:00.123456Z',salary_budget:'5000',currency:'EUR',salary_period:'monthly',salary_tax_basis:'net',contract_months:12,contract_guaranteed:true,option_months:12,source_status:'reported',availability_notes:'Join quickly',raw_request:'Original striker request, €5,000 monthly, 12 + 12.',...briefPatch,profile_notes:'Build from the back. Review current full-match footage before progressing. '+ 'LongRequirement'.repeat(12)},club:{name:'Example FC',organisation_id:'qa-club'},candidate_coverage:{recorded_candidates:5,candidates:[{player_name:'First Recorded Player',salary_check:{version:1,state:'minimum_above_budget',message:'The recorded salary minimum exceeds the club base-salary budget.',hard_conflict:briefPatch.source_status==='confirmed',needs_source_confirmation:briefPatch.source_status!=='confirmed',player_minimum:'5500.01',player_target:'6000',player_currency:'EUR',player_period:'monthly',player_tax_basis:'net',club_budget:String(briefPatch.salary_budget??'5000'),club_currency:'EUR',club_period:'monthly',club_tax_basis:'net',source_status:'confirmed',checked_on:'2026-10-28'},player_match_id:'60000000-0000-4000-8000-000000000001',player_id:'first-player',match_status:shortlisted?'shortlisted':'suggested',career_gate_state:'review_evidence',career_gate_reason:'Review the recorded evidence.'},{player_name:'Chosen Player',player_match_id:'chosen-match',player_id:'chosen-player',career_gate_state:'hold_player_decision',career_gate_reason:'Confirm the player’s preference.'},{player_name:'Unlinked Candidate'}]}},
    {club_need_id:'unknown-need',need:{title:'Goalkeeper request'},club:{name:'Other FC'},candidate_coverage:{candidates:[]}},
    {club_need_id:'expired-need',need:{title:'Previous transfer window',expires_at:'2020-01-01'},club:{name:'Previous FC'},candidate_coverage:{recorded_candidates:1,candidates:[{player_name:'Previous Candidate',player_match_id:'previous-match'}]}}
-  ]:[{club_need_id:'qa-need',need:{title:'Centre back needed',position:'Centre back'},club:{name:'Example FC'},candidate_coverage:{candidates:[]}}]},pursuits:{items:[]}},
+  ]:[{club_need_id:'qa-need',need:{title:'Centre back needed',position:'Centre back',...(pitchJourney?{status:'active'}:{})},club:{name:'Example FC',...(pitchJourney?{organisation_id:'qa-club'}:{})},candidate_coverage:{candidates:pitchJourney?[{
+    player_id:'qa-player-0',player_match_id:pitchMatch,player_name:'José Silva',match_status:shortlisted?'shortlisted':'suggested',career_gate_state:'open_aligned',
+  }]:[]}}]},pursuits:{items:[]}},
   ...(scenario==='need-review'?{connected:{needs:[{club_need_id:'qa-need',source_person_name:'Source Director',latest_contact:{person_name:'Source Director',summary:'Asked for current full-match footage.',channel:'phone',owner_name:'Jesse Edge',owner_state:'active_staff'}}]}}:{}),
   deals:{portfolio:{deals:[{deal_room_id:'qa-deal',title:'Example transfer',organisation:'Example FC',stage:'open',primary_blocker:'Club requests current footage and confirmation of availability before the recruitment meeting.',next_control_fix:scenario==='deal-follow-through'?{instruction:'Assign one accountable deal owner.'}:undefined}]}}
- }),[user,scenario,briefPatch,shortlisted]);
+ }),[user,scenario,briefPatch,shortlisted,pitchJourney,requestReference]);
  const invoke=useCallback(async(action:string,body:any={})=>{
   reads.current[action]=(reads.current[action]||0)+1;
   if(action==='club_request_options'){(window as any).qaSourceLookupCalls=((window as any).qaSourceLookupCalls||0)+1;const items=body.record_kind==='contact'?[{id:'40000000-0000-4000-8000-000000000001',name:'Source Director'}]:[{id:'30000000-0000-4000-8000-000000000003',name:'Source Agency'}];return {options:{items,selected:items.find(item=>item.id===body.selected_id)||null,has_more:false}};}
   if(action==='club_need_shortlist'){
-    if(scenario!=='need-review'||body.player_match_id!=='60000000-0000-4000-8000-000000000001'
+    if((scenario!=='need-review'&&!pitchJourney)||body.player_match_id!==pitchMatch
       || !['shortlist','remove'].includes(body.operation))throw new Error('Unrecognised shortlist request');
     if((window as any).qaShortlistShouldFail)throw new Error('Shortlist temporarily unavailable');
     (window as any).qaShortlistCalls=[...((window as any).qaShortlistCalls||[]),body.operation];
     setShortlisted(body.operation==='shortlist');
     return {shortlist:{saved:true,changed:true,player_match_id:body.player_match_id,status:body.operation==='shortlist'?'shortlisted':'reviewing'}};
+  }
+  if(pitchJourney){
+   const identity={player_match_id:pitchMatch,player_id:'qa-player-0',organisation_id:'qa-club',club_need_id:'qa-need'};
+   const sent_at=pitchState.current==='sent'?'2026-11-04T13:00:00Z':null;
+   const active=['ready','sent'].includes(pitchState.current);
+   if(action==='club_request_pitch_history'){
+    const expected={request:identity.club_need_id,match:pitchMatch,player:identity.player_id}[body.scope as 'request'|'match'|'player'];
+    const items=pitchState.current!=='none'&&body.scope_id===expected?[{
+     ...identity,share_id:pitchShare,pitch_status:pitchState.current,active,sent_at,request_available:true,
+     player_name:'José Silva',club_name:'Example FC',need_title:'Centre back needed',staff_reply:staffReply.current,
+     link_reply:sent_at?{response_type:'not_now',message:'Please follow up after the window.'}:null,
+    }]:[];
+    return {history:{scope:body.scope,scope_id:body.scope_id,items}};
+   }
+   if(action==='pitch_detail'&&body.share_id===pitchShare)return {pitch:{id:pitchShare,...identity,pitch_status:pitchState.current,active,sent_at,token:'fixture-pitch-token'}};
+   if(action==='external_dossiers')return {dossiers:{items:[{player:{player_id:identity.player_id},share_state:'share_safe'}]}};
+   if(action==='pitch_readiness')return {readiness:{items:[{...identity,player:{player_id:identity.player_id},club:{organisation_id:identity.organisation_id},career_gate:{state:'open_aligned'}}]}};
+   if(action==='pursuit_salary_review'&&body.player_match_id===pitchMatch)return {review:{
+    version:1,player_match_id:pitchMatch,player_id:identity.player_id,club_id:identity.organisation_id,can_proceed:true,state:'open_recorded_salary',message:'Recorded base salary fits.',
+    comparison:{version:1,state:'minimum_within_budget',fingerprint:'a'.repeat(32),source_status:'confirmed',club_source_status:'confirmed',missing:[]},
+   }};
+   const transitions:Record<string,{from:string;to:'draft'|'ready'|'sent';exact:boolean}> = {
+    pitch_draft_create:{from:'none',to:'draft',exact:body.player_match_id===pitchMatch},
+    pitch_publish:{from:'draft',to:'ready',exact:body.share_id===pitchShare},
+    pitch_confirm_sent:{from:'ready',to:'sent',exact:body.share_id===pitchShare},
+   };
+   if(action in transitions){
+    const transition=transitions[action];
+    if(pitchState.current!==transition.from||!transition.exact)throw new Error('Unexpected pitch mutation');
+    pitchState.current=transition.to;
+    (window as any).qaPitchWrites=[...((window as any).qaPitchWrites||[]),action];
+    return {result:{share_id:pitchShare}};
+   }
+   if(action==='club_request_pitch_reply_record'){
+    if(!sent_at||body.share_id!==pitchShare||body.club_need_id!==identity.club_need_id)throw new Error('Unexpected reply');
+    if(!staffReply.current){
+     staffReply.current={command:body.command_id,response_type:body.reply_type,channel:body.channel,message:body.note};
+     throw new Error('Test lost the first reply receipt');
+    }
+    if(staffReply.current.command!==body.command_id)throw new Error('Retry duplicated the reply');
+    return {receipt:{share_id:pitchShare,command_id:body.command_id}};
+   }
   }
   if(scenario==='deal-follow-through'||scenario==='need-review')(window as any).qaOpportunityCalls=[...((window as any).qaOpportunityCalls||[]),action];
   if(action==='workspace_search'){
@@ -87,7 +143,20 @@ export default function Page(){
   if(action==='recruitment_target')return {recruitment:{target:data.recruitment.items.find(item=>item.id===body.prospect_id),interactions:[]}};
   if(action==='player_data_status')return {job:null};
   if(action==='player_context_status')return {review:null};
-  if(action==='player_workspace')return {player:{identity:data.directory.items.find(p=>p.player_id===body.player_id)?.identity||{},service:{},agreements:[],documents:[],opportunities:[],deals:[],activity:[]}};
+  if(action==='player_workspace'){
+   if(fixtureRole!=='owner')throw new Error('Administrator access required');
+   const identity=data.directory.items.find(p=>p.player_id===body.player_id)?.identity;
+   if(scenario==='player-record-recovery'&&!(window as any).qaPlayerReadRecovered)return {player:{identity:{id:'different-player',name:'Wrong player'}}};
+   const linked=body.player_id==='qa-player-0'&&scenario!=='player-connections-legacy';
+   return {player:{
+    identity:{...identity,id:body.player_id},service:{},agreements:[],documents:[],opportunities:[],activity:[],
+    ...(linked?{
+     current_club_link:{organisation_id:'30000000-0000-4000-8000-000000000011',name:'Verified Club',country:'NZ'},
+     open_tasks:{total:1,items:[{id:'50000000-0000-4000-8000-000000000011',title:'Review full-match footage',due_at:null}]},
+    }:{}),
+    deals:linked?[{id:'60000000-0000-4000-8000-000000000011',title:'Summer transfer discussion',club_name:'Verified Club',stage:'discussion',status:'active'}]:[],
+   }};
+  }
   if((action==='player_profile_core'||action==='player_profile')&&scenario.startsWith('populated'))return {profile:{
    player:{id:body.player_id,first_name:'José',last_name:'Silva',date_of_birth:'2002-04-19',primary_position:'Centre back',current_club:'Wellington Harbour Football Club',current_country:'New Zealand',current_league:'National League Championship',current_season_label:'2026/27',nationalities:['New Zealand','Portugal'],contract_status:'under_contract',contract_expiry:'2027-06-30',verified_at:'2026-10-10T12:00:00Z',verification_status:'verified',transfermarkt_url:'https://example.test/player',wyscout_url:'https://example.test/scouting'},
    career:Array.from({length:6},(_,i)=>({id:'season-'+i,season_label:i===0?'2026/27':String(2026-i)+'/'+String(27-i),club_name:i===0?'Wellington Harbour Football Club':'Harbour Development Football Club',league:'National League Championship',country:'New Zealand',appearances:24-i,starts:22-i,minutes:1980-i*110,goals:2,assists:0,source_name:'Official competition match reports',source_url:'https://example.test/competition',source_reviewed_at:'2026-10-10T12:00:00Z',updated_at:'2026-10-10T12:00:00Z'})),
@@ -116,8 +185,16 @@ export default function Page(){
   }
   if(action==='player_profile_core'||action==='player_profile')return {profile:{access:fixtureRole!=='owner'?{scope:'assigned',restricted:true}:undefined,player:{id:body.player_id,first_name:user==='a'?'José':'Other',last_name:'Silva',primary_position:'Centre back',current_club:'Example FC',current_country:'NZ',current_league:'Regional League',current_season_label:'2026/27',verification_status:'reviewing'},career:[],settings:{},published:{published:false},videos:[],documents:[],shares:[],deals:[],clubs:[],branding:{support_email:'qa@example.test'},secondary_ready:scenario!=='populated-late-detail',auto_key_stats:[]}};
   throw new Error('Unexpected fixture action '+action);
- },[data,user,scenario,fixtureRole,profileOwner]);
+ },[data,user,scenario,fixtureRole,profileOwner,pitchJourney]);
  const rpc=useCallback(async(name:string,args:any={})=>{
+  if(requestReference&&name==='redream_club_request_preferences')return {records:{[referenceNeed]:{preferences:requestPrefs.current,updated_at:'2026-10-28T16:00:00.123456Z'}},staff:[{id:referenceMember,name:'Example Agent'}]};
+  if(requestReference&&name==='redream_club_need_patch_v2'&&args.p_need_id===referenceNeed){
+   requestPrefs.current={...requestPrefs.current,...args.p_preferences};
+   setBriefPatch(current=>({...current,...args.p_patch}));
+   (window as any).qaRequestPreferences=args.p_preferences;
+   return {ok:true,brief_version:1,preferences_version:1,id:referenceNeed,entity_type:'club_need'};
+  }
+
   if(scenario==='need-review'&&name==='redream_club_need_patch'){(window as any).qaBriefPatch=args.p_patch;if((window as any).qaBriefEditFails)throw Object.assign(new Error('Request update unavailable'),{code:'P0001'});if((window as any).qaBriefEditHangs)return new Promise(()=>{});setBriefPatch(current=>({...current,...args.p_patch}));return {ok:true,brief_version:1,id:args.p_need_id,entity_type:'club_need'};}
   reads.current[name]=(reads.current[name]||0)+1;
   if(name==='redream_relationship_person')return {person:{id:args.p_person_id,full_name:'Beyond Summary Director'},reach:{},employment:{},relationship_memory:{state:'recorded',best_route:{},routes:[]}};
@@ -126,7 +203,7 @@ export default function Page(){
   if(name==='redream_autopilot_market')return data.market;
   if(name==='redream_autopilot_deals')return data.deals;
   return {};
- },[data,scenario]);
+ },[data,scenario,requestReference]);
  const navigate=(view:string)=>{const next=new URLSearchParams(params.toString());next.set('view',view);for(const key of ['player','profile','person','record','tab'])next.delete(key);window.history.pushState(null,'',base+'?'+next);};
  const navigateHref=(_view:string,href:string)=>{const next=new URL(href,location.origin);for(const key of ['user','scenario','tenant','role','width'])if(params.has(key))next.searchParams.set(key,params.get(key)!);window.history.pushState(null,'',next.pathname+next.search);};
  const refresh=useCallback(async()=>{},[]);
@@ -135,7 +212,7 @@ export default function Page(){
  const runtime={...UNRESOLVED_TENANT_RUNTIME,resolved:true,tenant_id:'fixture-tenant-'+tenant,slug:'qa-find-flow',branding:{...UNRESOLVED_TENANT_RUNTIME.branding,display_name:'Example Agency'}};
  const [coordinator]=useState(()=>params.get('coordinator')==='1');
  if(coordinator)return <TenantRuntimeProvider runtime={runtime}><AgencyOperatingWorkspace/></TenantRuntimeProvider>;
- return <TenantRuntimeProvider runtime={runtime}><div className={styles.root} data-qa-ready={ready}>
+ return <TenantRuntimeProvider runtime={runtime}><div className={styles.root} data-mobile-workspace={pitchJourney?'':undefined} data-qa-ready={ready}>
   <aside className={styles.sidebar}><div className={styles.brand}>Example Agency</div><nav className={styles.nav} aria-label="Agency workspace">
    {['home','players','opportunities','network','calendar'].map(item=><Link key={item} href={base+'?view='+item} onClick={event=>{event.preventDefault();navigate(item);}}>{item==='opportunities'?<><span className={styles.navDesktopLabel}>Opportunities</span><span className={styles.navMobileLabel}>Market</span></>:<span>{item[0].toUpperCase()+item.slice(1)}</span>}</Link>)}
    <WorkspaceSearch compact className={styles.findButton} tenantId={runtime.tenant_id} userId={'fixture-user-'+user} cacheScope={scope} basePath={base} invoke={invoke as any} rpc={rpc as any} seed={{view,data}} onCreate={setCreated}/>
@@ -144,11 +221,12 @@ export default function Page(){
    {['players','network'].includes(view)?<PeopleViewSwitcher basePath={base} view={view} onNavigate={navigateHref}/>:null}
    <div style={{display:'flex',gap:10,marginBottom:16}}><button type="button" data-qa-switch onClick={()=>{const next=new URLSearchParams(params.toString());next.set('user',user==='a'?'b':'a');window.history.replaceState(null,'',base+'?'+next);}}>Switch account</button><button type="button" data-qa-dialog onClick={()=>setOtherDialog(true)}>Open other dialog</button></div>
    <div className={params.get('profile')==='1'?styles.viewStage:undefined} key={scope+':'+view+':'+playerId+':'+(params.get('tab')||'')}>
-    {view==='players'?(params.get('profile')==='1'&&playerId?<AgencyPlayerProfile playerId={playerId} cacheScope={scope} backHref={base+'?view=players'} workHref={base+'?view=players&player='+playerId} role={fixtureRole} fallbackAgency={{}} invoke={invoke as any} onOpenAction={()=>{}} onOpenIntelligence={()=>{}}/>:<AgencyPlayersWorkspace stateScope={scope} data={pageData} basePath={base} invoke={invoke as any} rpc={rpc as any} onRefresh={refresh} onLoadMore={loadMore} onOpenAction={()=>{}}/>):null}
+    {view==='players'?(params.get('profile')==='1'&&playerId?<AgencyPlayerProfile playerId={playerId} cacheScope={scope} backHref={base+'?view=players'} workHref={base+'?view=players&player='+playerId} role={fixtureRole} fallbackAgency={{}} invoke={invoke as any} onOpenAction={()=>{}} onOpenIntelligence={()=>{}}/>:<AgencyPlayersWorkspace stateScope={scope} data={pageData} basePath={base} marketInvoke={pitchJourney?invoke:undefined} canManageRecords={fixtureRole==='owner'} invoke={invoke as any} rpc={rpc as any} onRefresh={refresh} onLoadMore={loadMore} onOpenAction={()=>{}}/>):null}
     {view==='network'?<AgencyNetworkWorkspace stateScope={scope} data={data} basePath={base} rpc={rpc as any} onRefresh={refresh} onCreate={()=>{}} onOpenAction={()=>{}} onOpenClubAccount={setClubRequest}/>:null}
-    {view==='opportunities'?<AgencyOpportunitiesWorkspace invoke={invoke as any} data={{...data,opportunity_reads:{market:'ready',deals:'ready'}}} basePath={base} rpc={rpc as any} onRetry={()=>{}} onRefresh={refresh} onOpenAction={setActionRequest} onOpenPursuit={request=>{(window as any).qaOpenedOpportunity=request;}} onOpenIntelligence={setDealRequest}/>:null}
+    {view==='opportunities'?<AgencyOpportunitiesWorkspace invoke={invoke as any} marketInvoke={pitchJourney?invoke:undefined} recordRefreshKey={pitchRevision} data={{...data,opportunity_reads:{market:'ready',deals:'ready'}}} basePath={base} rpc={rpc as any} onRetry={()=>{}} onRefresh={refresh} onOpenAction={setActionRequest} onOpenPursuit={request=>{(window as any).qaOpenedOpportunity=request;if(pitchJourney)setPursuit(request);}} onOpenIntelligence={setDealRequest}/>:null}
     {view==='home'||view==='calendar'?<h1>{view==='home'?'Home':'Calendar'}</h1>:null}
    </div>
+   {pursuit?<AgencyPursuitRoom key={pursuit.key} presentation="page" request={pursuit} role="owner" marketData={data} invoke={invoke} refreshKey={pitchRevision} onApplied={()=>setPitchRevision(value=>value+1)} onClose={()=>setPursuit(null)} onOpenAction={setActionRequest} onOpenDeal={()=>{}}/>:null}
    {clubRequest?<AgencyClubAccountDrawer key={scope+clubRequest.key} request={clubRequest} invoke={invoke as any} rpc={rpc as any} onRefresh={refresh} onClose={()=>setClubRequest(null)} onOpenAction={()=>{}} onOpenDeal={()=>{}} onOpenMarket={()=>{}} onOpenPursuit={()=>{}} onOpenPlayer={()=>{}}/>:null}
    {dealRequest?<AgencyEntityIntelligenceDrawer key={scope+dealRequest.key} presentation={scenario==='deal-follow-through'?'page':undefined} request={dealRequest} invoke={invoke as any} onClose={()=>setDealRequest(null)} onOpenAction={setActionRequest} onOpenCloseout={()=>{}} onOpenNegotiation={()=>{}} onOpenPlayerReview={()=>{}}/>:null}
    {actionRequest?<AgencyActionDrawer key={actionRequest.key} request={actionRequest} invoke={invoke as any} onClose={()=>setActionRequest(null)} onApplied={refresh}/>:null}

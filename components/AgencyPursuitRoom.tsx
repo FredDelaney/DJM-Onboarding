@@ -31,6 +31,7 @@ import PursuitSalaryReview,{type PursuitSalaryState} from './PursuitSalaryReview
 import ConfirmActionDialog from './ConfirmActionDialog';
 import {formatCommercialAmount} from '@/lib/club-need-brief';
 import { readWithDeadline } from '@/lib/read-with-deadline';
+import { readPitchHistory, type PitchHistoryItem } from '@/lib/club-pitch-history';
 import {INVOICE_CURRENCY_MINOR_UNITS,invoiceCurrencyMinorUnit} from '@/lib/invoice-currencies';
 
 import type { AgencyActionRequest } from '@/components/AgencyActionDrawer';
@@ -164,7 +165,7 @@ export default function AgencyPursuitRoom({
   onOpenDeal,
   onOpenPlayerProfile,
   onApplied,
-  refreshKey = 0,
+  refreshKey,
   presentation = 'drawer',
 }: {
   request: AgencyPursuitRequest;
@@ -205,10 +206,7 @@ export default function AgencyPursuitRoom({
     useState<any>(null);
   const [readinessControl, setReadinessControl] =
     useState<any>(null);
-  const [executionControl, setExecutionControl] =
-    useState<any>(null);
-  const [responseControl, setResponseControl] =
-    useState<any>(null);
+  const [currentPitch, setCurrentPitch] = useState<PitchHistoryItem | null>(null);
   const [pitchDetail, setPitchDetail] =
     useState<any>(null);
   const [createdDealId, setCreatedDealId] =
@@ -283,18 +281,7 @@ export default function AgencyPursuitRoom({
       'unknown',
   );
 
-  const pitch = safeArray(
-    executionControl?.items ??
-      marketData?.pitch_execution?.items,
-  ).find(
-    (item: any) =>
-      String(item?.player_id || '') ===
-        playerId &&
-      (!clubId ||
-        String(
-          item?.organisation_id || '',
-        ) === clubId),
-  );
+  const pitch = currentPitch?.player_match_id === request.playerMatchId ? currentPitch : null;
 
   const shareId = String(
     pitchDetail?.id ||
@@ -302,21 +289,11 @@ export default function AgencyPursuitRoom({
       '',
   );
 
-  const response = safeArray(
-    responseControl?.items ??
-      marketData?.club_responses?.items,
-  ).find(
-    (item: any) =>
-      shareId &&
-      String(item?.share_id || '') ===
-        shareId,
-  );
+  const response = pitch?.link_reply;
 
   const dealRoomId = String(
     createdDealId ||
-      pitchDetail?.opportunity_id ||
       pitch?.opportunity_id ||
-      response?.deal_room_id ||
       '',
   );
 
@@ -343,11 +320,10 @@ export default function AgencyPursuitRoom({
       ).getTime() > Date.now());
 
   const pitchState = String(
-    pitchDetail?.pitch_status === 'draft'
-      ? 'draft_private'
-      : pitch?.execution_state ||
-          readiness?.pitch_readiness_state ||
-          'not_prepared',
+    pitch?.sent_at ? 'sent'
+      : pitch?.active ? 'link_prepared'
+      : pitch ? 'draft_private'
+      : readiness?.pitch_readiness_state || 'not_prepared',
   );
 
   const dealOwnerUserId =
@@ -418,34 +394,34 @@ export default function AgencyPursuitRoom({
     try {
       // Commit one complete snapshot; late or failed reads cannot expose partial controls.
       const snapshot = await readWithDeadline((async () => {
-        const [dossiers, readiness, execution, responses] = await Promise.all([
+        const [dossiers, readiness, history] = await Promise.all([
           invoke('external_dossiers', { limit: 250 }),
           invoke('pitch_readiness', { limit: 100 }),
-          invoke('pitch_execution', { limit: 500 }),
-          invoke('pitch_responses', { limit: 500 }),
+          invoke('club_request_pitch_history', { scope: 'match', scope_id: request.playerMatchId }),
         ]);
-        const nextExecution = execution?.execution || execution?.result || null;
-        const currentPitch = safeArray(nextExecution?.items).find((item: any) =>
-          String(item?.player_id || '') === playerId &&
-          (!clubId || String(item?.organisation_id || '') === clubId),
-        );
-        const detail = currentPitch?.share_id
-          ? await invoke('pitch_detail', { share_id: currentPitch.share_id })
+        const current = readPitchHistory(history, 'match', request.playerMatchId).items.find(item => !item.revoked_at) ?? null;
+        if (current && (current.player_id !== playerId || (clubId && current.organisation_id !== clubId))) {
+          throw new Error('The pitch could not be confirmed for this opportunity.');
+        }
+        const detail = current
+          ? (await invoke('pitch_detail', { share_id: current.share_id }))?.pitch
           : null;
+        if (current && (detail?.id !== current.share_id || detail?.player_id !== playerId
+          || detail?.organisation_id !== current.organisation_id)) {
+          throw new Error('The pitch could not be confirmed for this opportunity.');
+        }
         return {
           dossiers: dossiers?.dossiers || dossiers?.result || null,
           readiness: readiness?.readiness || readiness?.result || null,
-          execution: nextExecution,
-          responses: responses?.responses || responses?.result || null,
-          pitch: detail?.pitch || null,
+          current,
+          detail,
         };
       })());
       if (generation !== loadGeneration.current) return;
       setDossierControl(snapshot.dossiers);
       setReadinessControl(snapshot.readiness);
-      setExecutionControl(snapshot.execution);
-      setResponseControl(snapshot.responses);
-      setPitchDetail(snapshot.pitch);
+      setCurrentPitch(snapshot.current);
+      setPitchDetail(snapshot.detail);
     } catch (loadError) {
       if (generation !== loadGeneration.current) return;
       setError(
@@ -458,6 +434,7 @@ export default function AgencyPursuitRoom({
     clubId,
     invoke,
     playerId,
+    request.playerMatchId,
   ]);
 
   useEffect(() => {
@@ -503,7 +480,7 @@ export default function AgencyPursuitRoom({
 
   const refresh = async () => {
     await onApplied();
-    await loadDetails();
+    if (refreshKey === undefined) await loadDetails();
   };
 
   const copyPitch = async () => {
@@ -1071,9 +1048,7 @@ export default function AgencyPursuitRoom({
           }
         : {
             title: 'Review the club response',
-            instruction:
-              response.agency_review?.instruction ||
-              'Prepare the next internal review from the explicit club response.',
+            instruction: 'Prepare the next internal review from the explicit club response.',
             label: 'Prepare response review',
             run: () => void prepareResponse(),
             disabled: false,
@@ -1636,12 +1611,7 @@ export default function AgencyPursuitRoom({
                       value={human(
                         response.response_type,
                       )}
-                      detail={
-                        response.message ||
-                        response.agency_review
-                          ?.instruction ||
-                        null
-                      }
+                      detail={response.message || null}
                     />
                     <Fact
                       label="Responder"
@@ -1650,11 +1620,7 @@ export default function AgencyPursuitRoom({
                           ?.name ||
                         'Self-asserted identity'
                       }
-                      detail={
-                        response.responder
-                          ?.email ||
-                        'Identity not independently verified'
-                      }
+                      detail="Identity not independently verified"
                     />
                   </div>
 

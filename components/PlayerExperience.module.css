@@ -85,7 +85,7 @@
 .backLink{display:inline-flex;align-items:center;gap:11px;min-height:44px;padding:0 12px;border:0;border-radius:12px;background:transparent;color:var(--player-blue);font-size:14px;font-weight:720;cursor:pointer}
 .backLink:hover{background:#f2f7ff}
 .playerTopActions{display:flex;align-items:center;gap:9px}
-.playerTopActions>a{display:inline-flex;align-items:center;gap:7px;min-height:42px;border:1px solid #dce6f4;padding:0 13px;border-radius:12px;text-decoration:none;color:#58759b;font-size:12px;font-weight:700}
+.playerTopActions>a{display:inline-flex;align-items:center;gap:7px;min-height:44px;border:1px solid #dce6f4;padding:0 13px;border-radius:12px;text-decoration:none;color:#58759b;font-size:12px;font-weight:700}
 .playerTopActions>a:hover{background:#f1f7ff}
 .loadState{display:flex;align-items:center;gap:12px;min-height:70px;padding:16px;color:#5d7490}
 .loadState button{border:1px solid #dce7f3;border-radius:11px;min-height:40px;background:white;color:var(--player-blue);padding:0 12px;cursor:pointer}
@@ -98,8 +98,6 @@
 .identityPortrait img{width:100%;height:100%;object-fit:cover}
 .identityEdit{position:absolute;right:12px;top:12px;display:grid;place-items:center;width:38px;height:38px;border:1px solid #d2e7e1;border-radius:12px;background:#fff;color:#3d6b78;cursor:pointer}
 .identityRail h1{max-width:260px;text-align:center;margin:0 14px;font-size:23px;line-height:1.22;font-weight:785;letter-spacing:-.035em;overflow-wrap:anywhere;color:#111b2e}
-.insightsLink{display:inline-flex;align-items:center;gap:8px;border:1px solid #dbe5f1;border-radius:24px;padding:8px 14px;text-decoration:none;font-size:12px;color:#58769b;font-weight:700;margin:18px 0 10px}
-.insightsLink svg{color:var(--player-blue)}
 .identityContacts{margin:9px 4px 8px;max-width:100%;min-height:51px}
 .identityContacts :global(section){border:0;background:none;box-shadow:none;padding:0}
 .identityContacts :global(section) :global(div){max-width:100%}
@@ -128,6 +126,9 @@
 .clubInfoCard>div strong{font-size:15px;font-weight:740;white-space:normal;overflow-wrap:anywhere}
 .clubInfoCard>div span{font-size:12px;color:#8b9ab1}
 .clubInfoCard>button{display:grid;place-items:center;min-height:44px;min-width:44px;border:0;background:transparent;color:#92a6c1;cursor:pointer}
+.clubRecord{display:flex;align-items:center;gap:8px;min-height:44px;color:var(--player-blue);text-decoration:none}
+.clubRecord svg{flex:none}
+.clubRecord:hover{text-decoration:underline}
 .contractCard{display:flex;flex-direction:column;gap:16px;padding:25px 20px;min-height:165px}
 .cardLabel{display:flex;align-items:center;gap:12px;color:#778ba8;font-size:12px;font-weight:690}
 .contractCard>strong{font-size:21px;line-height:1.3;font-weight:700;letter-spacing:-.03em;color:#1c2c47}
@@ -151,7 +152,6 @@
 .sectionHeading>div h2{font-size:17px;line-height:1.25;font-weight:775;margin:0 0 6px;color:#111e35}
 .sectionHeading>div p{font-size:13px;color:#8395ad;margin:0;line-height:1.5}
 .sectionHeading>button{display:grid;place-items:center;min-width:44px;min-height:44px;border:1px solid #dde8f4;border-radius:50%;background:white;color:var(--player-blue);cursor:pointer}
-.roundAdd{display:grid;place-items:center;width:44px;height:44px;flex:none;border-radius:50%;background:var(--player-blue);color:white;text-decoration:none}
 .workEmpty{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:180px;text-align:center;border:1px dashed #dbe6f2;border-radius:17px;background:#fcfdff;padding:25px}
 .workEmpty>span{display:grid;place-items:center;width:53px;height:53px;border-radius:50%;background:#eff5fc;color:#8dadce}
 .workEmpty h3{font-size:15px;margin:14px 0 7px;color:#263a57}
@@ -176,6 +176,19 @@
 .dealList strong{font-size:13px;color:#263b56}
 .dealList article>div span{font-size:11px;color:#8194ac;margin-top:5px}
 .dealList article>small{font-size:11px;color:#738ba9;text-align:right}
+.dealList article>svg{flex:none;color:var(--player-blue)}
+.dealList article>div{overflow-wrap:anywhere}
+.recordAction{display:inline-flex;align-items:center;justify-content:center;gap:6px;flex:none;min-height:44px;padding:0 10px;border-radius:10px;color:var(--player-blue);font-size:13px;font-weight:700;text-decoration:none}
+.recordAction:hover{background:#f1f6fb}
+.recordAction:focus-visible,.clubRecord:focus-visible{outline:2px solid var(--player-blue);outline-offset:2px}
+.relatedNotice{font-size:13px;color:#536b85;line-height:1.5}
+.nextLabel{display:block;margin-bottom:5px;color:#536b85;font-size:12px;font-weight:650}
+@media(max-width:480px){
+ .playerContent .dealList article{padding-inline:11px;gap:8px}
+ .playerContent .recordAction{padding-inline:8px}
+ .playerContent .taskCard{flex-wrap:wrap;padding:14px;gap:10px}
+ .playerContent .taskCard button{margin-left:53px;min-height:44px}
+}
 .playerEdit{display:grid;gap:18px}
 .editHead{display:flex;align-items:start;justify-content:space-between;gap:12px}
 .editHead p{margin:0 0 5px;color:var(--player-blue);font-size:10px;letter-spacing:.14em;font-weight:770}
@@ -199,7 +212,7 @@
 .editError button{min-height:38px;padding:0 13px;border:1px solid #eec5c3;border-radius:8px;background:#fff;color:#a82d25}
 .editSuccess{color:#16835b;font-size:12px;margin:0 0 12px}
 @media(max-width:1050px){.playerSurface{padding:17px}.playerDetailGrid{grid-template-columns:225px minmax(0,1fr);gap:18px}.identityFacts{padding:18px 12px}.identityRail h1{font-size:20px}.profileInfoGrid{gap:12px}.quickLinks{grid-template-columns:1fr}.editColumns{grid-template-columns:minmax(185px,.9fr) minmax(0,1.3fr);gap:12px}}
-@media(max-width:760px){.playerSurface{margin:4px 0 18px;padding:12px 14px 24px;border-radius:16px}.playerPageHeader{padding-bottom:12px}.playerDetailGrid{display:block}.identityRail{position:relative;top:auto;display:grid;grid-template-columns:105px minmax(0,1fr);align-items:start;gap:6px 13px;border-right:0;border-bottom:1px solid #eaf0f7;padding:0 0 12px;margin-bottom:12px}.identityCover{grid-row:1/4;grid-column:1;width:105px;height:114px;margin:0;border-radius:13px}.identityCover>div:first-child{width:72px;height:72px;bottom:8px}.identityPortrait{width:72px!important;height:72px!important;min-height:72px!important;border-width:3px!important}.identityEdit{top:5px;right:5px;width:32px;height:32px}.identityRail h1{grid-column:2;grid-row:1;text-align:left;max-width:100%;font-size:20px;margin:0;align-self:end}.insightsLink{grid-column:2;grid-row:2;margin:5px 0;justify-self:start}.identityContacts{grid-column:1/-1;grid-row:4;margin:0;min-height:40px}.identityStats{grid-column:2;grid-row:3;padding:2px 0;margin:0;align-self:start}.identityStats>div{align-items:start;text-align:left;padding-left:9px}.identityStats>div:first-child{padding-left:0}.identityStats strong{font-size:11px}.identityStats span{font-size:10px}.identityFacts{grid-column:1/-1;grid-row:5;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;padding:9px 0 0}.identityFacts>div{gap:2px}.identityFacts dd{font-size:12px}.identityFacts dt{font-size:10px}.playerContent{padding:0}.detailTabs{gap:1px;justify-content:space-between;min-height:43px;margin-bottom:15px;overflow-x:auto}.detailTabs button{padding:9px 13px;font-size:12px;min-height:42px}.profileInfoGrid{grid-template-columns:1fr}.playerSection>h2:not(:first-child){margin-top:24px}.nextCard{min-height:150px;padding:18px}.contractCard{padding:18px;min-height:137px;gap:12px}.contractCard>strong{font-size:18px}.quickLinks{grid-template-columns:1fr 1fr}.editColumns{grid-template-columns:1fr}.playerEdit{gap:11px}}
+@media(max-width:820px){.playerSurface{margin:4px 0 18px;padding:12px 14px 24px;border-radius:16px}.playerPageHeader{padding-bottom:12px}.playerDetailGrid{display:block}.identityRail{position:relative;top:auto;display:grid;grid-template-columns:105px minmax(0,1fr);align-items:start;gap:6px 13px;border-right:0;border-bottom:1px solid #eaf0f7;padding:0 0 12px;margin-bottom:12px}.identityCover{grid-row:1/3;grid-column:1;width:105px;height:114px;margin:0;border-radius:13px}.identityCover>div:first-child{width:72px;height:72px;bottom:8px}.identityPortrait{width:72px!important;height:72px!important;min-height:72px!important;border-width:3px!important}.identityEdit{top:5px;right:5px;width:32px;height:32px}.identityRail h1{grid-column:2;grid-row:1;text-align:left;max-width:100%;font-size:20px;margin:0;align-self:end}.identityContacts{grid-column:1/-1;grid-row:4;margin:0;min-height:40px}.identityStats{grid-column:2;grid-row:2;padding:2px 0;margin:0;align-self:start}.identityStats>div{align-items:start;text-align:left;padding-left:9px}.identityStats>div:first-child{padding-left:0}.identityStats strong{font-size:11px}.identityStats span{font-size:10px}.identityFacts{grid-column:1/-1;grid-row:5;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;padding:9px 0 0}.identityFacts>div{gap:2px}.identityFacts dd{font-size:12px}.identityFacts dt{font-size:10px}.playerContent{padding:0}.detailTabs{gap:1px;justify-content:space-between;min-height:43px;margin-bottom:15px;overflow-x:auto}.detailTabs button{padding:9px 13px;font-size:12px;min-height:44px}.profileInfoGrid{grid-template-columns:1fr}.playerSection>h2:not(:first-child){margin-top:24px}.nextCard{min-height:150px;padding:18px}.contractCard{padding:18px;min-height:137px;gap:12px}.contractCard>strong{font-size:18px}.quickLinks{grid-template-columns:1fr 1fr}.editColumns{grid-template-columns:1fr}.playerEdit{gap:11px}}
 @media(max-width:390px){.playerTopActions>a{padding:0 9px;font-size:11px}.identityRail h1{font-size:18px}.identityCover{width:90px}.identityRail{grid-template-columns:90px minmax(0,1fr)}.detailTabs button{padding:9px 10px}.quickLinks{grid-template-columns:1fr}.identityStats strong{font-size:10px}}
 
 .selectPlayer button:focus-visible{outline:2px solid var(--player-blue);outline-offset:3px}
@@ -311,6 +324,27 @@
 /* Do not let the agent editor intrude into the next column. */
 .rosterTable td.agentCell{overflow:hidden;text-overflow:clip}
 
+.contractCard .cardLabel button { display: grid; place-items: center; width: 44px; height: 44px; margin-left: auto; border: 0; border-radius: 50%; background: transparent; color: #637993; cursor: pointer; }
+.contractCard .cardLabel button:hover { background: #f1f5fa; }
+.contractCard .cardLabel button:focus-visible { outline: 2px solid var(--player-blue); }
+@media (min-width: 1024px) {
+ .directoryHeading { display: none; }
+ .playerDetailGrid { gap: clamp(24px,3vw,48px); }
+ .identityCover { width: 100%; margin-inline: 0; height: 114px; background: #d8f9e7; }
+ .identityCover > div:first-child { bottom: -25px; }
+ .identityRail { border: 0; }
+ .identityRail h1 { font-size: clamp(23px,2vw,28px); line-height: 1.3; }
+ .identityFacts { padding-inline: 12px; }
+ .detailTabs { gap: 9px; }
+}
+
+.advancedFilter { grid-template-columns: minmax(0,1fr); width: min(255px,calc(100vw - 48px)); min-height: 0; }
+.filterCategories { padding: 4px 8px 0; border-right: 0; max-height: min(475px,60dvh); }
+.filterCategories > button { font-size: 14px; }
+.filterCategories > small { position: sticky; bottom: 0; padding: 10px 8px; border-top: 1px solid #e8eef6; background: white; }
+.filterDetail { gap: 10px; padding: 10px 13px 16px; }
+.filterDetail > button { display: inline-flex; align-items: center; gap: 5px; }
+@media(max-width:680px) { .advancedFilter { left: -40px; } }
 
 /* Recruitment entries share the directory without appearing represented or editable as players. */
 .statusChip[data-status="prospected"]{background:#edf1ff;color:#475f9d}

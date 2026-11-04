@@ -28,6 +28,8 @@ import { friendlyError } from '@/lib/platform-client';
 import {readWithDeadline} from '@/lib/read-with-deadline';
 import {writeWithDeadline} from '@/lib/write-with-deadline';
 import {clubNeedBriefFields,clubNeedCommercialFields,clubNeedFootballFields,clubNeedSourceFields, emptyClubNeedBrief, validateClubNeedBrief, clubNeedFinancialFacts} from '@/lib/club-need-brief';
+import {additionalRequestFields,requestPreferencesPatch,requestPreferenceKeys,type RequestPreferencesResult,type RequestStaff} from '@/lib/club-request-preferences';
+import RequestStaffPicker from './RequestStaffPicker';
 import AgencyRecordSelect from './AgencyRecordSelect';
 import ClubIdentityMark from './ClubIdentityMark';
 import ConfirmActionDialog from './ConfirmActionDialog';
@@ -106,6 +108,7 @@ const META: Record<
 
 const initialValues = {
   ...emptyClubNeedBrief,
+  window_preference:'',player_origin:'',loan_option:'',transfer_budget_min:'',salary_budget_min:'',assigned_user_ids:'',
   full_name: '',
   first_name: '',
   last_name: '',
@@ -141,6 +144,7 @@ export default function AgencyCreateDrawer({
   theme,
   onOpenCreated,
   prefillClub,
+  requestRpc,
 }: {
   kind: AgencyCreateKind;
   invoke: Invoke;
@@ -148,6 +152,7 @@ export default function AgencyCreateDrawer({
   onCreated: (result?: any) => Promise<void> | void;
   onOpenCreated?: (result: any) => void;
   theme?: CSSProperties;
+  requestRpc?: <T,>(name:string,args?:Record<string,unknown>,signal?:AbortSignal)=>Promise<T>;
   prefillClub?: {name:string;country?:string|null;organisationId?:string};
 }) {
   const meta = META[kind];
@@ -155,6 +160,16 @@ export default function AgencyCreateDrawer({
   const baseline = {...initialValues, currency:kind==='club_need'?'':initialValues.currency,
     ...(prefillClub?{club_name:prefillClub.name,country:prefillClub.country||'',organisation_id:kind==='club_need'?(prefillClub.organisationId||''):'' ,current_club:kind==='player'?prefillClub.name:'',current_country:kind==='player'?(prefillClub.country||''):''}:{})};
   const [values, setValues] = useState(baseline);
+  const [requestStaff,setRequestStaff] = useState<RequestStaff[]|null>(null);
+  useEffect(()=>{
+    if(kind!=='club_need'||!requestRpc)return;
+    const controller = new AbortController();
+    void readWithDeadline(requestRpc<RequestPreferencesResult>('redream_club_request_preferences',{p_need_ids:[]},controller.signal),10000,controller.signal)
+      .then(result=>{if(!controller.signal.aborted&&Array.isArray(result?.staff))setRequestStaff(result.staff);})
+      .catch(()=>{if(!controller.signal.aborted)setRequestStaff(null);});
+    return()=>controller.abort();
+  },[kind,requestRpc]);
+
   const [players, setPlayers] = useState<PlayerOption[]>([]);
   const [loadingOptions, setLoadingOptions] = useState(kind === 'deal');
   const [busy, setBusy] = useState(false);
@@ -335,6 +350,9 @@ export default function AgencyCreateDrawer({
           expires_on: values.expires_on || null,
           brief:Object.fromEntries(clubNeedBriefFields.map(field=>[field.key,field.key==='currency'?values.currency.trim().toUpperCase():values[field.key].trim()||null])),
         };
+        if(requestPreferenceKeys.some(key=>values[key].trim())){
+          body.preferences=requestPreferencesPatch(Object.fromEntries(requestPreferenceKeys.filter(key=>values[key].trim()).map(key=>[key,values[key]])));
+        }
       }
 
       if (kind === 'contact') {
@@ -397,7 +415,7 @@ export default function AgencyCreateDrawer({
       if(outcome.status==='unknown'){unknown();return;}
       if('error' in outcome.result&&outcome.result.error)throw outcome.result.error;
       createdResult.current=kind==='club'?{...outcome.result.value,formClubName:values.club_name.trim(),formCountry:values.country.trim()}:outcome.result.value;
-      if(kind==='club_need'&&(createdResult.current?.created?.brief_version!==1||createdResult.current?.created?.created!==true||typeof createdResult.current?.created?.club_need_id!=='string')){unknown();return;}
+      if(kind==='club_need'&&(createdResult.current?.created?.brief_version!==1||createdResult.current?.created?.created!==true||Boolean(body.preferences&&createdResult.current?.created?.preferences_version!==1)||typeof createdResult.current?.created?.club_need_id!=='string')){unknown();return;}
       if(kind==='recruitment_target'&&(createdResult.current?.result?.created!==true||typeof createdResult.current?.result?.prospect_id!=='string'||!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(createdResult.current.result.prospect_id))){unknown();return;}
       phase.current = 'created';
       if (!active.current) return;
@@ -431,7 +449,7 @@ export default function AgencyCreateDrawer({
         ref={dialog}
         tabIndex={-1}
         inert={discardOpen || undefined}
-        className={`${styles.drawer} ${kind==='contact'||kind==='club'?styles.contactDrawer:''}`}
+        className={`${styles.drawer} ${kind==='contact'||kind==='club'?styles.contactDrawer:''}`} data-request-create={kind==='club_need'||undefined}
         onKeyDown={event => {
           if (event.defaultPrevented || discardOpen) return;
           if (event.key === 'Escape') {event.preventDefault(); event.stopPropagation(); requestClose();}
@@ -601,7 +619,7 @@ export default function AgencyCreateDrawer({
                 <div className={styles.briefFields}>
                   {clubNeedCommercialFields.map(field=><label key={field.key} className={styles.field}>
                     <span>{field.label}</span>
-                    {field.type==='select'?<select aria-label={field.label} value={values[field.key]} onChange={event=>setValue(field.key,event.target.value)}>{field.options.map(([value,label])=><option key={value} value={value}>{label}</option>)}</select>:field.type==='textarea'?<textarea aria-label={field.label} value={values[field.key]} maxLength={2000} onChange={event=>setValue(field.key,event.target.value)}/>:<input aria-label={field.label} type={field.type} min={field.type==='number'?'0':undefined} step={field.type==='number'?'any':undefined} placeholder={field.key==='currency'?'e.g. EUR':'Optional'} value={values[field.key]} onChange={event=>setValue(field.key,event.target.value)}/>}
+                    {field.type==='select'?<select aria-label={field.label} value={values[field.key]} onChange={event=>{setValue(field.key,event.target.value);if(field.key==='transfer_type'&&event.target.value!=='loan')setValue('loan_option','');}}>{field.options.map(([value,label])=><option key={value} value={value}>{label}</option>)}</select>:field.type==='textarea'?<textarea aria-label={field.label} value={values[field.key]} maxLength={2000} onChange={event=>setValue(field.key,event.target.value)}/>:<input aria-label={field.label} type={field.type} min={field.type==='number'?'0':undefined} step={field.type==='number'?'any':undefined} placeholder={field.key==='currency'?'e.g. EUR':'Optional'} value={values[field.key]} onChange={event=>setValue(field.key,event.target.value)}/>}
                   </label>)}
                   {clubNeedFinancialFacts(values).length?<div className={styles.briefSummary} aria-live="polite"><dl>{clubNeedFinancialFacts(values).map(([label,value])=><div key={label}><dt>{label}</dt><dd>{value}</dd></div>)}</dl><p>Request budgets only. These are not agreed player earnings or agency revenue. No currency or tax conversion is applied.</p></div>:null}
                 </div>
@@ -609,6 +627,17 @@ export default function AgencyCreateDrawer({
 
               <details className={styles.briefSection}><summary>Football requirements</summary><div className={styles.briefFields}>{clubNeedFootballFields.map(field=><label key={field.key} className={styles.field}><span>{field.label}</span>{field.type==='select'?<select aria-label={field.label} value={values[field.key]} onChange={event=>setValue(field.key,event.target.value)}>{field.options.map(([value,label])=><option key={value} value={value}>{label}</option>)}</select>:field.type==='textarea'?<textarea aria-label={field.label} value={values[field.key]} maxLength={2000} onChange={event=>setValue(field.key,event.target.value)}/>:<input aria-label={field.label} type={field.type} min={field.type==='number'?'1':undefined} step={field.type==='number'?'1':undefined} value={values[field.key]} onChange={event=>setValue(field.key,event.target.value)}/>}</label>)}</div></details>
               <details className={styles.briefSection} onToggle={event=>setSourceOpen(event.currentTarget.open)}><summary>Source & priority</summary>{sourceOpen?<div className={styles.briefFields}>{clubNeedSourceFields.map(field=>field.type==='reference'?<AgencyRecordSelect key={field.key} label={field.label} kind={field.lookupKind} value={values[field.key]} lookup={lookupRecords} onChange={id=>setValue(field.key,id)}/>:<label key={field.key} className={styles.field}><span>{field.label}</span>{field.type==='select'?<select aria-label={field.label} value={values[field.key]} onChange={event=>setValue(field.key,event.target.value)}>{field.options.map(([value,label])=><option key={value} value={value}>{label}</option>)}</select>:field.type==='textarea'?<textarea aria-label={field.label} value={values[field.key]} maxLength={2000} onChange={event=>setValue(field.key,event.target.value)}/>:<input aria-label={field.label} type={field.type} value={values[field.key]} onChange={event=>setValue(field.key,event.target.value)}/>}</label>)}</div>:null}</details>
+
+              {requestStaff?<>
+                <div className={styles.requestPreferences}>
+                  {additionalRequestFields.map(field=><label key={field.key} className={styles.field}><span>{field.label}</span>
+                    {field.type==='select'?<select aria-label={field.label} value={values[field.key]} onChange={event=>setValue(field.key,event.target.value)}>{field.options.map(([value,label])=><option key={value} value={value}>{label}</option>)}</select>
+                      :<input type="number" min="0" step="any" aria-label={field.label} value={values[field.key]} onChange={event=>setValue(field.key,event.target.value)}/>}
+                  </label>)}
+                </div>
+                {values.transfer_type==='loan'?<label className={styles.requestOption}><input type="checkbox" checked={values.loan_option==='true'} onChange={event=>setValue('loan_option',event.target.checked?'true':'')}/>Loan with option</label>:null}
+                <RequestStaffPicker staff={requestStaff} value={values.assigned_user_ids} disabled={busy} onChange={value=>setValue('assigned_user_ids',value)}/>
+              </>:null}
 
               <DetailsToggle
                 open={showDetails}
