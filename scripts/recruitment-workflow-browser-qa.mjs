@@ -39,6 +39,7 @@ try{
   const row=page.getByRole('button').filter({hasText:'Alpha Prospect'});
   await row.waitFor();
   const writes=action=>calls.filter(call=>call.action===action);
+  const switchTab=async label=>page.getByRole('navigation',{name:'Player sections'}).getByRole('button',{name:label,exact:true}).click();
   if(scenario==='journey'||scenario==='layout'||scenario==='invalid-create'||scenario==='create-refresh'){
    assert.equal(await page.getByRole('button',{name:'Our Players',exact:true}).isVisible(),true,'An unloaded roster count must not appear as zero');
    await page.getByRole('button',{name:'Add target',exact:true}).click();
@@ -61,12 +62,15 @@ try{
     assert.equal(await page.getByRole('button',{name:'Add target',exact:true}).evaluate(node=>node===document.activeElement),true);
     const longName='AlexandertheLongRecruitmentProspect'.repeat(5);records.get(first).full_name=longName;
     await row.click();await page.getByRole('heading',{name:longName,exact:true}).waitFor();
-    const target=page.getByRole('region',{name:'Recruitment target workspace',exact:true});
+    const target=page.getByRole('region',{name:longName+' player workspace',exact:true});
     for(const width of [320,390,768,1440]){
      await page.setViewportSize({width,height:844});
      assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),'Long prospect names fit '+width);
-     assert.equal(await target.getByRole('button',{name:'Move to Contact',exact:true}).evaluate(node=>getComputedStyle(node).backgroundColor),'rgb(21, 94, 89)','Prospect actions retain the agency colour');
-     const fields=await target.locator('input,select,textarea').evaluateAll(nodes=>nodes.filter(node=>node.getBoundingClientRect().height).map(node=>({height:node.getBoundingClientRect().height,font:parseFloat(getComputedStyle(node).fontSize)})));
+     await switchTab('Profile');
+     await target.getByRole('button',{name:'Move to Contact',exact:true}).waitFor();
+     assert.ok(await target.getByRole('button',{name:'Move to Contact',exact:true}).isVisible(),'Recruitment stage stays accessible in the shared player profile');
+     await switchTab('Updates');
+     const fields=await target.locator('[class*="recruitmentForm"] input,[class*="recruitmentForm"] select,[class*="recruitmentForm"] textarea').evaluateAll(nodes=>nodes.filter(node=>node.getBoundingClientRect().height).map(node=>({height:node.getBoundingClientRect().height,font:parseFloat(getComputedStyle(node).fontSize)})));
      assert.ok(fields.every(field=>field.height>=44&&field.font>=16),'Readable prospect work controls at '+width);
     }
    }else{
@@ -80,13 +84,16 @@ try{
     }else{
      await page.getByRole('heading',{name:'QA New Prospect',exact:true}).waitFor();await page.waitForURL(url=>url.searchParams.get('target')===created);assert.equal(new URL(page.url()).searchParams.get('target'),created);assert.equal(new URL(page.url()).searchParams.has('player'),false);
      assert.equal(writes('recruitment_create').length,1);assert.equal(writes('create_player').length,0);
+     await switchTab('Updates');
      await page.getByRole('textbox',{name:'Interaction note',exact:true}).fill('Spoke about the player’s plans for next season.');
      await page.getByRole('combobox',{name:'Contact direction',exact:true}).selectOption('inbound');
      await page.getByRole('button',{name:'Save interaction',exact:true}).click();await page.getByRole('status').filter({hasText:'Interaction saved.'}).waitFor();
      await page.waitForFunction(()=>document.activeElement?.getAttribute('role')==='status'&&document.activeElement.textContent.includes('Interaction saved.'));
+     await switchTab('Tasks');
      await page.getByLabel('Follow-up date and time',{exact:true}).fill('2030-03-31T02:30');await page.getByRole('button',{name:'Save follow-up',exact:true}).click();await page.getByRole('alert').filter({hasText:'clock change'}).waitFor();assert.equal(writes('recruitment_set_next_action').length,0,'A nonexistent local time must never become a silent shifted reminder');
      await page.getByLabel('Follow-up date and time',{exact:true}).fill('2030-11-15T10:30');await page.getByRole('button',{name:'Save follow-up',exact:true}).click();
      await page.getByRole('status').filter({hasText:'Follow-up date saved.'}).waitFor();assert.equal(new Date(writes('recruitment_set_next_action')[0].body.next_action_at).toISOString(),'2030-11-15T09:30:00.000Z');
+     await switchTab('Profile');
      await page.getByRole('button',{name:'Move to Contact',exact:true}).click();await page.getByRole('heading',{name:'Contact',exact:true}).waitFor();
      assert.equal(writes('recruitment_log_interaction').length,1);assert.equal(writes('recruitment_log_interaction')[0].body.direction,'inbound');await page.screenshot({path:output+'/prospect-390.png',fullPage:true});
     }
@@ -105,7 +112,7 @@ try{
    if(scenario==='permissions'){
     assert.equal(await page.getByRole('button',{name:/Move to|Save interaction|Save follow-up|Add to Our Players/}).count(),0);
    }else if(['promotion','agent','operations','invalid-promotion'].includes(scenario)){
-    if(['agent','operations'].includes(scenario)){assert.equal(await page.getByRole('button',{name:'Manage Alpha Prospect',exact:true}).count(),0,'Staff work access does not grant admin record management');await page.getByRole('textbox',{name:'Interaction note',exact:true}).fill('Authorised staff note.');await page.getByRole('button',{name:'Save interaction',exact:true}).click();await page.getByRole('status').filter({hasText:'Interaction saved.'}).waitFor();}
+    if(['agent','operations'].includes(scenario)){assert.equal(await page.getByRole('button',{name:'Manage Alpha Prospect',exact:true}).count(),0,'Staff work access does not grant admin record management');await switchTab('Updates');await page.getByRole('textbox',{name:'Interaction note',exact:true}).fill('Authorised staff note.');await page.getByRole('button',{name:'Save interaction',exact:true}).click();await page.getByRole('status').filter({hasText:'Interaction saved.'}).waitFor();await switchTab('Profile');}
     await page.getByRole('button',{name:'Move to Represented',exact:true}).click();const stage=page.getByRole('alertdialog',{name:'Confirm signed representation?',exact:true});await stage.waitFor();
     await page.keyboard.press('Escape');assert.equal(writes('recruitment_set_stage').length,0);
     await page.getByRole('button',{name:'Move to Represented',exact:true}).click();await stage.getByRole('button',{name:'Confirm represented',exact:true}).click();
@@ -113,9 +120,10 @@ try{
     else{await page.getByRole('button',{name:'Add to Our Players',exact:true}).click();const promote=page.getByRole('alertdialog',{name:'Add this player to Our Players?',exact:true});await promote.waitFor();
     assert.equal(writes('recruitment_promote').length,0);await promote.getByRole('button',{name:'Add represented player',exact:true}).click();
     if(scenario==='invalid-promotion'){await page.getByRole('button',{name:'Check latest details',exact:true}).waitFor();assert.equal(await page.getByRole('button',{name:'Open player',exact:true}).count(),0);assert.equal(await page.getByRole('status').filter({hasText:'Added to Our Players.'}).count(),0,'A malformed response cannot claim promotion or open an arbitrary record');}
-    else{await page.getByRole('status').filter({hasText:'Added to Our Players.'}).waitFor();assert.equal(writes('recruitment_promote').length,1);
-    await page.getByRole('button',{name:'Open player',exact:true}).click();await page.waitForURL(url=>url.searchParams.get('player')===playerId);assert.equal(new URL(page.url()).searchParams.has('target'),false);}}
+    else{await page.waitForURL(url=>url.searchParams.get('player')===playerId);assert.equal(writes('recruitment_promote').length,1);
+    await page.getByRole('region',{name:'Alpha Prospect player workspace'}).waitFor();assert.equal(new URL(page.url()).searchParams.has('target'),false);}}
    }else{
+    await switchTab('Updates');
     await page.getByRole('textbox',{name:'Interaction note',exact:true}).fill('Keep this note with Alpha.');
     if(scenario==='unknown-write'){
      await page.clock.install();hold=new Promise(resolve=>{release=resolve;});
@@ -131,7 +139,10 @@ try{
     }else{
      hold=new Promise(resolve=>{release=resolve;});const started=page.waitForRequest(request=>request.postData()?.includes('recruitment_log_interaction'));await page.getByRole('button',{name:'Save interaction',exact:true}).click();await started;
      assert.equal(await page.getByRole('textbox',{name:'Interaction note',exact:true}).isDisabled(),true);
-     await page.getByRole('button',{name:'Open another prospect',exact:true}).click();await page.getByRole('heading',{name:'Beta Prospect',exact:true}).waitFor();
+     await page.getByRole('button',{name:'Back to Recruitment',exact:true}).click();
+     await page.getByRole('button').filter({hasText:'Beta Prospect'}).click();
+     await page.getByRole('heading',{name:'Beta Prospect',exact:true}).waitFor();
+     await switchTab('Updates');
      const response=page.waitForResponse(response=>response.request().postData()?.includes('recruitment_log_interaction'));release();hold=null;await response;
      assert.equal(await page.getByRole('textbox',{name:'Interaction note',exact:true}).inputValue(),'');assert.equal(await page.getByRole('status').filter({hasText:'Interaction saved.'}).count(),0);
     }

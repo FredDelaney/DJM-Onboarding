@@ -824,6 +824,7 @@ export default function AgencyPlayersWorkspace({
       setTargetNotice(message);confirmed?.();
       if(action==='recruitment_promote')setPromoted({scope:stateScope,id:targetId,playerId:result.player_id});
       try{await Promise.all([action==='recruitment_promote'?Promise.resolve():refreshTarget(),readWithDeadline(onRefresh())]);}catch{if(currentTarget.current===captured)setTargetRefreshFailed(true);}
+      if(action==='recruitment_promote'&&currentTarget.current===captured&&!targetRefreshFailed)openPlayer(result.player_id);
     }catch(error){if(currentTarget.current===captured)setTargetWriteError(friendlyError(error));}
     finally{if(currentTarget.current===captured){targetPending.current=false;setTargetSaving('');}}
   };
@@ -862,83 +863,72 @@ export default function AgencyPlayersWorkspace({
     catch{setTargetWriteError('Choose a valid follow-up date and time. Avoid times repeated or skipped by a clock change.');}
   };
 
+  // Recruitment opened from Players uses the same full profile layout and tabs,
+  // while every write continues through the recruitment-target backend.
   if (targetId) {
-    return (
-      <div className={styles.playerPage}>
-        <aside className={`${styles.drawer} ${styles.playerPagePanel} ${styles.recruitmentPanel}`} role="region" aria-label="Recruitment target workspace">
-          <div className={`${styles.drawerTop} ${styles.drawerTopManaged}`}>
-            <button type="button" data-ui-button="icon"
-              className={styles.closeButton} onClick={closeTarget} aria-label={searchParams.get('fromRoster')==='1'?'Back to Players':'Back to Recruitment'}>
-              <ArrowLeft size={18} />
-            </button>
-            {targetDetail?.target && canManageRecords ? (
-              <EntityActionsMenu
-                scope={stateScope}
-                kind="recruitment_target"
-                entityId={targetId}
-                label={targetDetail.target.full_name || 'Recruitment target'}
-                rpc={rpc}
-                onChanged={async (change, signal) => {
-                  await (onRecordRefresh || onRefresh)();
-                  if(signal?.aborted)return;
-                  if (change === 'edit') await refreshTarget();
-                  else closeTarget();
-                }}
-                fields={[
-                  { key: 'full_name', label: 'Player name', value: targetDetail.target.full_name },
-                  { key: 'primary_position', label: 'Position', value: targetDetail.target.primary_position },
-                  { key: 'current_club', label: 'Current club', value: targetDetail.target.current_club },
-                  { key: 'current_country', label: 'Current country', value: targetDetail.target.current_country },
-                  { key: 'contract_expiry', label: 'Contract expiry', value: targetDetail.target.contract_expiry || '', type: 'date' },
-                  { key: 'transfermarkt_url', label: 'Transfermarkt', value: targetDetail.target.transfermarkt_url, type: 'url' },
-                ]}
-              />
-            ) : null}
-          </div>
-          {targetNotice?<p ref={targetOutcome} tabIndex={-1} className={styles.targetFeedback} role="status">{targetNotice}</p>:null}
-          {targetWriteError?<p ref={targetFailure} tabIndex={-1} className={styles.targetFeedback} role="alert">{targetWriteError}</p>:null}
-          {targetUncertain||targetRefreshFailed?<div ref={targetRecovery} tabIndex={-1} className={styles.targetFeedback} role="alert"><p>{targetUncertain?'Could not confirm the save. Your draft is kept. Check the latest details before trying again; the original request may still finish.':'Your change is saved. The latest details or list could not refresh.'}</p><button type="button" data-ui-button="secondary" className={styles.secondaryButton} disabled={Boolean(targetSaving)||targetRefreshing} onClick={()=>void retryTargetRefresh()}>{targetRefreshing?'Refreshing...':targetUncertain?'Check latest details':'Refresh details'}</button></div>:null}
-          {currentPromotion?<div className={styles.targetFeedback}><button type="button" data-ui-button="primary" className={styles.primaryButton} onClick={()=>openPlayer(currentPromotion.playerId)}>Open player</button></div>:null}
-          {targetBusy&&!currentPromotion?<div className={styles.drawerState} role="status"><LoaderCircle size={20} className={styles.spin}/><div><strong>Opening recruitment target</strong><span>Loading the latest recruitment details.</span></div></div>:null}
-          {targetError&&!currentPromotion?<div ref={targetLoadFailure} tabIndex={-1} className={styles.drawerState} role="alert"><CircleAlert size={19}/><div><strong>Recruitment target unavailable</strong><span>{targetError}</span><button type="button" data-ui-button="secondary"
-              className={styles.secondaryButton} onClick={()=>setTargetReload(value=>value+1)}>Try again</button></div></div>:null}
-          {!targetBusy&&!targetError&&targetDetail&&!currentPromotion?(
-            <div className={styles.drawerBody}>
-              {canManageRecords?<RecordContactActions kind="recruitment_target" recordId={targetId} name={targetDetail.target?.full_name||'Recruitment player'} scope={stateScope} rpc={rpc}/>:null}
-              <header className={styles.recruitHero}><div className={styles.recruitmentMark}>{initials(targetDetail.target?.full_name||'')||'P'}</div>
-                <div><p>RECRUITMENT</p><h2 ref={targetHeading} tabIndex={-1}>{targetDetail.target?.full_name}</h2><span>{[targetDetail.target?.primary_position,targetDetail.target?.current_club,targetDetail.target?.current_country].filter(Boolean).join(' · ')||'Add more player details'}</span></div></header>
-              <section className={styles.detailSection}><p>CURRENT STAGE</p><h3>{PIPELINE.find(([key])=>key===targetDetail.target?.ui_stage)?.[1]||human(targetDetail.target?.ui_stage)}</h3>
-                <span className={styles.sectionCopy}>{targetDetail.target?.next_action_at?`Next follow-up ${relativeDate(targetDetail.target.next_action_at)}`:'No next follow-up yet'}</span>
-                <div className={styles.actionRow}>
-                  {canWorkRecruitment&&nextMajorStage(targetDetail.target?.raw_stage)?(<button type="button" data-ui-button="primary" disabled={targetLocked}
-              className={styles.primaryButton} onClick={()=>{if(nextMajorStage(targetDetail.target?.raw_stage)?.[0]==='signed')setConfirmStage(currentTarget.current);else void changeStage();}}><ArrowRight size={14}/> {targetSaving==='recruitment_set_stage'?'Saving stage...':'Move to '+nextMajorStage(targetDetail.target?.raw_stage)?.[1]}</button>):null}
-                  {canPromoteRecruitment&&targetDetail.target?.raw_stage==='signed'?(<button type="button" data-ui-button="primary" disabled={targetLocked}
-              className={styles.primaryButton} onClick={()=>setConfirmPromotion(currentTarget.current)}><Users size={14}/> Add to Our Players</button>):null}
-                </div>
-              </section>
-              {canWorkRecruitment&&!['signed','paused','declined','lost'].includes(targetDetail.target?.raw_stage)?<section className={styles.detailSection}><p>FOLLOW-UP</p><h3>Set the next follow-up</h3><div className={styles.followupForm}><label>Follow-up date and time<input type="datetime-local" value={followupDraft} disabled={targetLocked} onChange={event=>{followupDirty.current=true;setFollowupDraft(event.target.value);}}/></label><small>{Intl.DateTimeFormat().resolvedOptions().timeZone}</small><button type="button" data-ui-button="primary" className={styles.primaryButton} disabled={targetLocked||!followupDraft||new Date(followupDraft).getTime()===new Date(targetDetail.target?.next_action_at).getTime()} onClick={()=>void saveFollowup()}>{targetSaving==='recruitment_set_next_action'?'Saving follow-up...':'Save follow-up'}</button></div></section>:null}
-              {canWorkRecruitment?<section className={styles.detailSection}><p>CONTACT</p><h3>Log what happened</h3>
-                <div className={styles.interactionForm}>
-                  <select aria-label="Interaction channel" disabled={targetLocked} value={interactionChannel} onChange={(e)=>setInteractionChannel(e.target.value)}><option value="whatsapp">WhatsApp</option><option value="instagram">Instagram</option><option value="email">Email</option><option value="phone">Phone</option><option value="meeting">Meeting</option><option value="other">Other</option></select>
-                  <select aria-label="Contact direction" disabled={targetLocked} value={interactionDirection} onChange={event=>setInteractionDirection(event.target.value)}><option value="outbound">Agency to player</option><option value="inbound">Player to agency</option><option value="mutual">Two-way conversation</option></select>
-                  <textarea aria-label="Interaction note" disabled={targetLocked} rows={3} value={interaction} onChange={(e)=>setInteraction(e.target.value)} placeholder="Short factual note"/>
-                  <button type="button" data-ui-button="primary"
-              className={styles.primaryButton} disabled={targetLocked||!interaction.trim()} onClick={()=>void logInteraction()}><CheckCircle2 size={14}/> {targetSaving==='recruitment_log_interaction'?'Saving interaction...':'Save interaction'}</button>
-                </div>
-              </section>:null}
-              <section className={styles.detailSection}><p>HISTORY</p><h3>Recruitment interactions</h3>
-                <div className={styles.rows}>
-                  {(targetDetail.interactions||[]).map((item:any)=>(<article className={styles.row} key={item.id}><div><strong>{human(item.channel)} · {human(item.direction)}</strong><span>{item.summary}</span><small>{relativeDate(item.occurred_at)}</small></div></article>))}
-                  {!(targetDetail.interactions||[]).length?<Empty icon={UserRound} title="No recruitment interaction yet" copy="Log the first real conversation. Timestamps are never invented."/>:null}
-                </div>
-              </section>
-            </div>
-          ):null}
-        </aside>
-        <ConfirmActionDialog open={confirmStage===currentTarget.current} title="Confirm signed representation?" description="Only mark this player as represented once the representation agreement has been signed." confirmLabel="Confirm represented" onClose={()=>setConfirmStage(null)} onConfirm={()=>{if(confirmStage===currentTarget.current)void changeStage();setConfirmStage(null);}}/>
-        <ConfirmActionDialog open={confirmPromotion===currentTarget.current} title="Add this player to Our Players?" description="This creates their agency player record and moves them out of Recruitment." confirmLabel="Add represented player" onClose={()=>setConfirmPromotion(null)} onConfirm={()=>{if(confirmPromotion===currentTarget.current)void promote();setConfirmPromotion(null);}}/>
-      </div>
-    );
+    if(currentPromotion){
+      return <PlayerExperienceDetail
+        key={stateScope+':promoted:'+currentPromotion.playerId}
+        playerId={currentPromotion.playerId}
+        canManageRecords={canManageRecords}
+        cacheScope={stateScope}
+        basePath={basePath}
+        summary={players.find((item:any)=>String(item?.player_id)===currentPromotion.playerId)}
+        invoke={invoke} rpc={rpc}
+        onRefresh={onRecordRefresh||onRefresh}
+        onClose={closeTarget}
+        onOpenAction={onOpenAction}
+      />;
+    }
+    const current=targetDetail?.target||targets.find((item:any)=>item.id===targetId);
+    const nextStage=nextMajorStage(targetDetail?.target?.raw_stage) as readonly [string,string]|null;
+    return <>
+      <PlayerExperienceDetail
+        key={stateScope+':recruitment:'+targetId}
+        playerId={targetId}
+        canManageRecords={canManageRecords}
+        cacheScope={stateScope}
+        basePath={basePath}
+        invoke={invoke} rpc={rpc}
+        onRefresh={onRecordRefresh||onRefresh}
+        onClose={closeTarget}
+        backLabel={searchParams.get('fromRoster')==='1'?'Players':'Recruitment'}
+        onOpenAction={onOpenAction}
+        recruitment={{
+          target:current,
+          interactions:targetDetail?.interactions||[],
+          loading:targetBusy,
+          error:targetError,
+          notice:targetNotice,
+          writeError:targetWriteError,
+          uncertain:targetUncertain,
+          refreshFailed:targetRefreshFailed,
+          canWork:canWorkRecruitment,
+          canPromote:canPromoteRecruitment,
+          locked:targetLocked,
+          saving:targetSaving,
+          nextStage,
+          onMoveStage:()=>{void changeStage();},
+          onConfirmStage:()=>setConfirmStage(currentTarget.current),
+          onConfirmPromotion:()=>setConfirmPromotion(currentTarget.current),
+          onRefresh:refreshTarget,
+          onRecover:retryTargetRefresh,
+          onRetry:()=>setTargetReload(value=>value+1),
+          followupDraft,
+          onFollowupDraft:value=>{followupDirty.current=true;setFollowupDraft(value);},
+          onSaveFollowup:()=>{void saveFollowup();},
+          interaction,
+          onInteraction:setInteraction,
+          channel:interactionChannel,
+          onChannel:setInteractionChannel,
+          direction:interactionDirection,
+          onDirection:setInteractionDirection,
+          onLogInteraction:()=>{void logInteraction();},
+        }}
+      />
+      <ConfirmActionDialog open={confirmStage===currentTarget.current} title="Confirm signed representation?" description="Only mark this player as represented once the representation agreement has been signed." confirmLabel="Confirm represented" onClose={()=>setConfirmStage(null)} onConfirm={()=>{if(confirmStage===currentTarget.current)void changeStage();setConfirmStage(null);}}/>
+      <ConfirmActionDialog open={confirmPromotion===currentTarget.current} title="Add this player to Our Players?" description="This creates their agency player record and moves them out of Recruitment." confirmLabel="Add represented player" onClose={()=>setConfirmPromotion(null)} onConfirm={()=>{if(confirmPromotion===currentTarget.current)void promote();setConfirmPromotion(null);}}/>
+    </>;
   }
 
   if (playerId) {
