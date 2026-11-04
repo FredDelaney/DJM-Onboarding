@@ -124,6 +124,7 @@ try{
  assert.ok(await table.getByText('Prospect',{exact:true}).count()>=1);
  const statusFilter=directory().locator('summary').filter({hasText:'Filter'});
  await statusFilter.click();
+ await directory().getByRole('button',{name:'Status',exact:true}).click();
  const selectStatus=directory().getByRole('combobox',{name:'Agency status filter'});
  await selectStatus.selectOption('mandated');
  assert.equal(await table.locator('tbody tr').count(),1);
@@ -132,6 +133,7 @@ try{
  assert.equal(await table.locator('tbody tr').count(),1);
  await table.getByRole('button',{name:'Open Plan Player',exact:true}).waitFor();
  await directory().getByRole('button',{name:'Clear all'}).click();
+ await statusFilter.click();
  await table.getByRole('button',{name:'Open Plan Player',exact:true}).click();
  await page.waitForURL(url=>url.searchParams.get('player')==='setup');
  const editorPlayer=page.getByRole('region',{name:'Plan Player player workspace'});
@@ -165,7 +167,28 @@ try{
  assert.equal(await table.getByText('Mandated',{exact:true}).count(),1,'The roster retains the other mandated player');
  player=await open('Contract Player');
  await player.getByRole('button',{name:'Change status for Contract Player'}).getByText('Signed',{exact:true}).waitFor();
+ const lead=player.getByRole('region',{name:'Lead agent'});
+ await lead.getByText('Jesse Agent',{exact:true}).waitFor();
+ await lead.getByRole('button',{name:'Manage lead agent'}).click();
+ const agentPicker=lead.getByRole('group',{name:'Manage lead agent'});
+ await agentPicker.getByRole('searchbox',{name:'Search agents'}).fill('Moses');
+ const moses=agentPicker.getByRole('option',{name:/Moses Agent/});
+ await moses.click();
+ await agentPicker.getByRole('button',{name:'Save agent'}).click();
+ await lead.getByRole('status').getByText('Lead agent saved.').waitFor();
+ await lead.getByText('Moses Agent',{exact:true}).waitFor();
  await back();
+ const contractRow=table.locator('tbody tr').filter({hasText:'Contract Player'});
+ await contractRow.getByText('Moses Agent',{exact:true}).waitFor({timeout:5000});
+ // An agent filter uses the same accountable owner returned by Supabase.
+ await statusFilter.click();
+ await directory().getByRole('button',{name:'Agent',exact:true}).click();
+ await page.screenshot({path:output+'/advanced-agent-filter-1440.png',fullPage:false});
+ await directory().getByRole('combobox',{name:'Filter agent'}).selectOption('agent-2');
+ assert.equal(await table.locator('tbody tr').count(),1);
+ await table.getByRole('button',{name:'Open Contract Player',exact:true}).waitFor();
+ await directory().getByRole('button',{name:'Clear all'}).click();
+ await statusFilter.click();
  // Status changes remain available on a narrow phone without lateral scrolling.
  await page.setViewportSize({width:320,height:844});
  await page.waitForFunction(()=>document.querySelector('button[aria-label="Card view"]')?.getAttribute('aria-pressed')==='true');
@@ -176,5 +199,10 @@ try{
  assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),'Mobile picker does not overflow');
  await page.screenshot({path:output+'/status-picker-320.png',fullPage:false});
  await player.getByRole('group',{name:'Choose agency status'}).getByRole('button',{name:'Cancel'}).click();
+ await player.getByRole('region',{name:'Lead agent'}).getByRole('button',{name:'Manage lead agent'}).click();
+ const agentBounds=await player.getByRole('group',{name:'Manage lead agent'}).boundingBox();
+ assert.ok(agentBounds&&agentBounds.x>=-1&&agentBounds.x+agentBounds.width<=321&&agentBounds.y>=-1&&agentBounds.y+agentBounds.height<=845,'Mobile lead-agent editor stays on screen: '+JSON.stringify(agentBounds));
+ await page.screenshot({path:output+'/lead-agent-picker-320.png',fullPage:false});
+ await player.getByRole('group',{name:'Manage lead agent'}).getByRole('button',{name:'Cancel'}).click();
  assert.deepEqual(errors,[],'No browser errors');
 }finally{await browser.close();}

@@ -252,3 +252,44 @@
  .identityStats .statusChip{white-space:nowrap;font-size:10px;padding:3px 6px}
  .statusPickerTrigger{gap:3px}
 }
+
+/* Fully functional multi-category filters, grounded in the loaded roster. */
+.advancedFilter{position:absolute;z-index:85;top:calc(100% + 4px);left:-10px;display:grid;grid-template-columns:220px minmax(200px,1fr);width:min(510px,calc(100vw - 44px));min-height:325px;overflow:hidden;border:1px solid #dce6f1;border-radius:14px;background:white;box-shadow:0 20px 50px rgba(29,51,84,.19)}
+.filterCategories{display:flex;flex-direction:column;gap:2px;padding:9px;border-right:1px solid #e8eef6;max-height:390px;overflow:auto}
+.filterCategories>button{display:flex;align-items:center;gap:9px;flex:none;width:100%;min-height:42px;padding:7px 8px;border:0;border-radius:9px;background:transparent;font:inherit;font-size:12px;color:#344966;text-align:left;cursor:pointer}
+.filterCategories>button:hover,.filterCategories>button[aria-pressed=true]{background:#eff5ff;color:#2879e4}
+.filterCategories>button:focus-visible{outline:2px solid var(--player-blue);outline-offset:-2px}
+.filterCategories>button>svg:first-child{color:#6d87a7;flex:none}
+.filterCategories>button>span{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.filterCategories>button>svg:last-child{color:#8b9bb0;flex:none}
+.filterCategories>small{padding:9px 9px 3px;font-size:11px;color:#8b9ab0}
+.filterDot{display:inline-block;flex:none;width:8px;height:8px;border-radius:50%;background:var(--player-blue)}
+.filterDetail{display:flex;flex-direction:column;gap:14px;padding:20px 17px}
+.filterDetail>strong{color:#213957;font-size:14px}
+.filterDetail>p{max-width:235px;margin:0;color:#8294ad;font-size:12px;line-height:1.5}
+.filterDetail>button{align-self:flex-start;min-height:40px;padding:0 4px;border:0;background:transparent;color:var(--player-blue);font-weight:650;font-size:12px;cursor:pointer}
+.filterControl{display:grid;gap:8px;font-size:12px;color:#657a96}
+.filterControl>select{display:block;min-height:43px;max-width:100%;width:100%;padding:7px 9px;border:1px solid #d9e5f2;border-radius:9px;background:#fff;color:#253e5e;font-size:12px}
+.filterControl>select:focus-visible{outline:2px solid var(--player-blue)}
+.clubCell,.nationalityCell{display:inline-flex;align-items:center;gap:8px;max-width:100%;vertical-align:middle;min-width:0}
+.clubCell>.cellClamp{max-width:calc(100% - 43px)}
+.nationalityCell>.cellClamp{max-width:calc(100% - 29px)}
+.clubCell .clubMark{margin-right:0}
+.agentName .cellClamp{max-width:calc(100% - 37px)}
+@media(max-width:550px){
+ .advancedFilter{left:-83px;grid-template-columns:48% minmax(0,1fr);width:calc(100vw - 32px);min-height:298px}
+ .filterCategories{padding:6px;max-height:330px}
+ .filterCategories>button{gap:5px;padding:6px 5px;font-size:11px}
+ .filterCategories>button>svg:first-child{width:14px}
+ .filterDetail{gap:10px;padding:16px 11px}
+ .filterDetail>p{font-size:11px}
+}
+
+/* Maintain accessible touch targets and readable filter guidance at all widths. */
+.filterCategories>button{min-height:44px}
+.filterCategories>small,.filterDetail>p{font-size:12px}
+.filterControl>select{min-height:44px}
+@media(max-width:550px){
+ .filterCategories>button{min-height:44px}
+ .filterCategories>small,.filterDetail>p{font-size:12px}
+}

@@ -24,9 +24,11 @@ try{
   await page.screenshot({path:'/tmp/redream-athlivo-qa/players-'+width+'.png',fullPage:false});
   assert.ok(await directory.getByRole('row').count()>5);
   await directory.locator('summary').filter({hasText:'Filter'}).click();
-  await directory.getByRole('combobox',{name:'Position'}).selectOption('Centre back');
+  await directory.getByRole('button',{name:'Position',exact:true}).click();
+  await directory.getByRole('combobox',{name:'Filter position'}).selectOption('Centre back');
   assert.ok(await directory.getByRole('row').count()>5);
   await directory.getByRole('button',{name:'Clear all'}).click();
+  await directory.locator('summary').filter({hasText:'Filter'}).click();
   await directory.getByRole('button',{name:'Open José Silva'}).click();
   const player=page.getByRole('region',{name:'José Silva player workspace'});
   await player.waitFor();
