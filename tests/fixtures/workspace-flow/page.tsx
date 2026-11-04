@@ -84,6 +84,7 @@ export default function Page(){
   if(action==='deal_war_room')return {war_room:{available:true,deal:{id:body.deal_room_id,title:scenario==='deal-follow-through'?'Example transfer':'Beyond Summary Deal',stage:'recorded'},next_control_fix:scenario==='deal-follow-through'?{instruction:'Assign one accountable deal owner.'}:{},control:{}}};
   if(action==='players_workspace'){const offset=Number(body.offset)||0;const active=data.directory.items.filter(player=>player.player_id!=='qa-player-248');const items=active.slice(offset,offset+100);return {players:{items,total:250,next_offset:offset+items.length,has_more:offset+items.length<250}};}
   if(action==='recruitment_board')return {recruitment:data.recruitment};
+  if(action==='recruitment_target')return {recruitment:{target:data.recruitment.items.find(item=>item.id===body.prospect_id),interactions:[]}};
   if(action==='player_data_status')return {job:null};
   if(action==='player_context_status')return {review:null};
   if(action==='player_workspace')return {player:{identity:data.directory.items.find(p=>p.player_id===body.player_id)?.identity||{},service:{},agreements:[],documents:[],opportunities:[],deals:[],activity:[]}};

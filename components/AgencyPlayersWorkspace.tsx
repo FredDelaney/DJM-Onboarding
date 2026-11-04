@@ -39,6 +39,7 @@ import { prefetchPlayerProfile, invalidatePlayerProfile } from '@/lib/player-pro
 import { readWithDeadline } from '@/lib/read-with-deadline';
 import {writeWithDeadline} from '@/lib/write-with-deadline';
 import { playerRosterPriority } from '@/lib/player-roster-priority';
+import {unifyPlayersAndRecruitment,recruitmentRosterTargetId} from '@/lib/unified-player-roster';
 import { publicFile } from '@/lib/supabase';
 import {useWorkspaceListMemory,rememberListPosition,useRestoreListPosition} from '@/components/useWorkspaceListMemory';
 import styles from './AgencyPlayersWorkspace.module.css';
@@ -657,6 +658,7 @@ export default function AgencyPlayersWorkspace({
     params.delete('player');
     params.delete('profile');
     params.delete('target');
+    params.delete('fromRoster');
 
     if (nextSection === 'recruitment') {
       params.set('tab', 'recruitment');
@@ -677,6 +679,7 @@ export default function AgencyPlayersWorkspace({
     params.set('player', id);
     params.delete('tab');
     params.delete('target');
+    params.delete('fromRoster');
     params.delete('profile');
     router.push(`${basePath}?${params.toString()}`);
   };
@@ -690,6 +693,7 @@ export default function AgencyPlayersWorkspace({
     params.set('profile', '1');
     params.delete('tab');
     params.delete('target');
+    params.delete('fromRoster');
     router.push(`${basePath}?${params.toString()}`);
   };
 
@@ -703,7 +707,7 @@ export default function AgencyPlayersWorkspace({
     router.replace(`${basePath}${query ? `?${query}` : ''}`);
   };
 
-  const openTarget = (id: string) => {
+  const openTarget = (id: string, fromRoster = false) => {
     rememberListPosition(stateScope,section);
     setTargetId(id);
     focusTarget.current=id;
@@ -711,6 +715,8 @@ export default function AgencyPlayersWorkspace({
     params.set('view', 'players');
     params.set('tab', 'recruitment');
     params.set('target', id);
+    if (fromRoster) params.set('fromRoster','1');
+    else params.delete('fromRoster');
     params.delete('player');
     params.delete('profile');
     router.push(`${basePath}?${params.toString()}`);
@@ -718,10 +724,14 @@ export default function AgencyPlayersWorkspace({
 
   const closeTarget = () => {
     setTargetId(null);
+    const returningToRoster = searchParams.get('fromRoster') === '1';
+    if (returningToRoster) setSection('players');
     const params = new URLSearchParams(searchParams.toString());
     params.set('view', 'players');
-    params.set('tab', 'recruitment');
+    if (returningToRoster) params.delete('tab');
+    else params.set('tab', 'recruitment');
     params.delete('target');
+    params.delete('fromRoster');
     router.replace(`${basePath}?${params.toString()}`);
   };
 
@@ -758,6 +768,10 @@ export default function AgencyPlayersWorkspace({
     .filter((item: any) => !archived.has(`player:${String(item?.player_id || '')}`));
   const targets = (Array.isArray(data?.recruitment?.items) ? data.recruitment.items : [])
     .filter((item: any) => !archived.has(`recruitment_target:${String(item?.id || '')}`)&&!(promoted?.scope===stateScope&&promoted.id===item.id));
+  const unifiedPlayers = useMemo(
+    () => unifyPlayersAndRecruitment(players,targets,canWorkRecruitment && !data?.recruitment_error),
+    [players,targets,canWorkRecruitment,data?.recruitment_error],
+  );
   const q = search.trim().toLowerCase();
 
   const filteredPlayers = useMemo(() => players.filter((item:any) => {
@@ -854,7 +868,7 @@ export default function AgencyPlayersWorkspace({
         <aside className={`${styles.drawer} ${styles.playerPagePanel} ${styles.recruitmentPanel}`} role="region" aria-label="Recruitment target workspace">
           <div className={`${styles.drawerTop} ${styles.drawerTopManaged}`}>
             <button type="button" data-ui-button="icon"
-              className={styles.closeButton} onClick={closeTarget} aria-label="Back to Recruitment">
+              className={styles.closeButton} onClick={closeTarget} aria-label={searchParams.get('fromRoster')==='1'?'Back to Players':'Back to Recruitment'}>
               <ArrowLeft size={18} />
             </button>
             {targetDetail?.target && canManageRecords ? (
@@ -949,12 +963,12 @@ export default function AgencyPlayersWorkspace({
 
   if (section === 'players') {
     return <PlayerExperienceDirectory
-      players={players}
-      total={typeof data?.directory?.total==='number'?data.directory.total:players.length}
+      players={unifiedPlayers}
+      total={(typeof data?.directory?.total==='number'?data.directory.total:players.length)+(canWorkRecruitment&&!data?.recruitment_error?targets.length:0)}
       hasMore={Boolean(data?.directory?.has_more)}
       search={search}
       onSearch={setSearch}
-      onOpen={openPlayer}
+      onOpen={id=>{const target=recruitmentRosterTargetId(id);if(target)openTarget(target,true);else openPlayer(id);}}
       onCreate={onCreatePlayer}
       canCreate={canCreateRecords}
       onRecruitment={()=>changeSection('recruitment')}
@@ -964,6 +978,9 @@ export default function AgencyPlayersWorkspace({
       rpc={rpc}
       canManageAgents={canManageRecords}
       onAgentsChanged={onRecordRefresh||onRefresh}
+      recruitmentError={data?.recruitment_error||''}
+      onRetryRecruitment={onRefresh}
+      recruitmentTruncated={canWorkRecruitment&&targets.length>=500}
     />;
   }
 

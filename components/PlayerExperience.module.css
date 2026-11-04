@@ -310,3 +310,14 @@
 .rosterTable .playerRowName>span:last-child{min-width:0;white-space:nowrap}
 /* Do not let the agent editor intrude into the next column. */
 .rosterTable td.agentCell{overflow:hidden;text-overflow:clip}
+
+
+/* Recruitment entries share the directory without appearing represented or editable as players. */
+.statusChip[data-status="prospected"]{background:#edf1ff;color:#475f9d}
+.playerTile>.statusChip{align-self:flex-start;max-width:100%;min-height:25px;padding:3px 10px}
+.playerTile>.statusChip[data-status="prospected"]{color:#475f9d}
+.playerTile>.statusChip[data-status="signed"]{color:#15845b}
+.playerTile>.statusChip[data-status="prospect"]{color:#3271bc}
+.playerTile>.statusChip[data-status="mandated"]{color:#95631c}
+.directoryFooter p[role="alert"]{flex-basis:100%;display:flex;align-items:center;gap:9px;flex-wrap:wrap;color:#ae493c}
+.directoryFooter p[role="alert"] button{min-height:36px}
