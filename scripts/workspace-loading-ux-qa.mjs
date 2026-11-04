@@ -29,6 +29,7 @@ try {
   else if(name==='home_focus')result={home:{commands:[]}};
   else if(name==='redream_autopilot_operations')result={deadlines:{items:[{entity_type:'club_need',entity_id:'00000000-0000-4000-8000-000000000091',deadline_type:'club_need_expiry',title:'Recorded club need expires',deadline_at:new Date(Date.now()-86400000).toISOString()}]}};
   else if(name==='players_workspace')result={players:{items:[{player_id:'fixture-player',identity:{name:'Example Player',primary_position:'Centre back',current_club:'Example FC',next_action:'Call the club about the trial',next_action_due:'2020-01-01',contract_expiry:'2027-06-30'},service:{next_control_fix:{fix_type:'set_player_next_action',instruction:'Review the representation plan'},next_service_move:{move_type:'maintain_player_plan',instruction:'Agree the next career step with the player'}}}],total:1,has_more:false}};
+  else if(name==='recruitment_board')result={recruitment:{items:[{id:'fixture-prospect',full_name:'Fixture Recruitment Prospect',ui_stage:'contact',current_club:'Other FC',nationality:'New Zealand'}]}};
   else if(name==='redream_autopilot_relationships')result={accounts:{clubs:[{organisation_id:'current',name:'Current Club',country:'NZ'}]},contacts:{items:[]}};
   else if(name==='clubs_directory')result={directory:{items:[{organisation_id:'current',name:'Current Club',country:'NZ',city:null,league_name:null,player_count:0,request_count:0,deal_count:0,contact_count:0,source_id:null}],total:1,has_more:false}};
   else if(name==='redream_autopilot_deals')result={portfolio:{deals:[{deal_room_id:'fixture-deal',title:'Example live transfer',organisation:'Example FC',stage:'interest'}]}};
@@ -111,6 +112,10 @@ const waitForRead=async pending=>{let timer;try{await Promise.race([pending,new 
  await visit('view=players');
  const directory=page.getByRole('region',{name:'Players directory'});
  const player=directory.getByRole('button',{name:'Open Example Player',exact:true});await player.waitFor();
+ const prospectRow=directory.getByRole('row').filter({hasText:'Fixture Recruitment Prospect'});
+ await prospectRow.waitFor();
+ assert.equal(await prospectRow.getByText('Prospected',{exact:true}).count(),1,'Combined production coordinator shows the separate recruitment source');
+ assert.ok(reads.includes('recruitment_board'),'Players loads the existing recruitment API alongside player records');
  const bounds=await player.boundingBox();assert.ok(bounds.height>=44,'Desktop roster rows remain accessible');
  await mkdir('/tmp/redream-ux-pass',{recursive:true});await page.screenshot({path:'/tmp/redream-ux-pass/players-desktop.png'});
  await page.locator('main header summary').filter({hasText:'More'}).click();

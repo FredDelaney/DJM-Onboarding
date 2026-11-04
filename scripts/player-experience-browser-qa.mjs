@@ -20,7 +20,12 @@ try{
    await page.waitForFunction(()=>document.querySelector('button[aria-label="Table view"]')?.getAttribute('aria-pressed')==='true');
   }
   await directory.getByRole('table').waitFor();
-  console.log('Players hydrated, table visible at '+width+'px');
+  // Recruitment is included in Players but remains a separate, unpromoted record.
+  const prospectRow=directory.getByRole('row').filter({hasText:'Recruitment Prospect'});
+  await prospectRow.waitFor();
+  assert.equal(await prospectRow.getByText('Prospected',{exact:true}).count(),1);
+  assert.equal(await prospectRow.getByRole('button',{name:'Manage agents for Recruitment Prospect'}).count(),0);
+  console.log('Players and recruitment prospect hydrated at '+width+'px');
   await page.screenshot({path:'/tmp/redream-athlivo-qa/players-'+width+'.png',fullPage:false});
   assert.ok(await directory.getByRole('row').count()>5);
   await directory.locator('summary').filter({hasText:'Filter'}).click();
@@ -29,6 +34,17 @@ try{
   assert.ok(await directory.getByRole('row').count()>5);
   await directory.getByRole('button',{name:'Clear all'}).click();
   await directory.locator('summary').filter({hasText:'Filter'}).click();
+  await directory.locator('summary').filter({hasText:'Filter'}).click();
+  await directory.getByRole('button',{name:'Status',exact:true}).click();
+  await directory.getByRole('combobox',{name:'Agency status filter'}).selectOption('prospected');
+  assert.equal(await directory.getByRole('row').count(),2,'Prospected filters to the single recruitment record');
+  await directory.getByRole('button',{name:'Clear all'}).click();
+  await directory.locator('summary').filter({hasText:'Filter'}).click();
+  await directory.getByRole('button',{name:'Open Recruitment Prospect'}).click();
+  await page.waitForURL(url=>url.searchParams.get('target')==='qa-target'&&url.searchParams.get('fromRoster')==='1');
+  await page.getByRole('region',{name:'Recruitment target workspace'}).getByRole('heading',{name:'Recruitment Prospect'}).waitFor();
+  await page.getByRole('button',{name:'Back to Players'}).click();
+  await page.waitForURL(url=>!url.searchParams.has('target')&&!url.searchParams.has('tab'));
   await directory.getByRole('button',{name:'Open José Silva'}).click();
   const player=page.getByRole('region',{name:'José Silva player workspace'});
   await player.waitFor();
