@@ -488,7 +488,8 @@ await mkdir(marketingDir,{recursive:true});await cp(new URL('../tests/fixtures/p
      await page.getByRole('heading',{name:'Recruitment',exact:true}).waitFor();
      const sections=page.locator('[data-people-internal-tabs]');
      await sections.getByRole('button',{name:/^Our Players/}).click();
-     await page.getByRole('region',{name:'Players directory'}).getByRole('heading',{name:'Players',exact:true}).waitFor();
+     await page.getByRole('region',{name:'Players directory'}).getByRole('table').waitFor();
+     await page.getByRole('heading',{name:'Players',exact:true,level:1}).waitFor();
     }
    }
    console.log('SCREEN',suite,screen);
