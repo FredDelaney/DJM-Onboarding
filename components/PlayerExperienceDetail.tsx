@@ -7,6 +7,7 @@ import ClubIdentityMark,{CountryFlag} from './ClubIdentityMark';
 import EntityActionsMenu from './EntityActionsMenu';
 import PlayerProfilePhoto from './PlayerProfilePhoto';
 import PlayerStaffControl from './PlayerStaffControl';
+import PlayerLeadAgentControl from './PlayerLeadAgentControl';
 import PlayerSalaryTerms from './PlayerSalaryTerms';
 import RecordContactActions from './RecordContactActions';
 import {friendlyError,relativeDate} from '@/lib/platform-client';
@@ -254,7 +255,7 @@ export default function PlayerExperienceDetail({playerId,summary,cacheScope,canM
         <label>Club country<input value={draft.current_country} onChange={event=>setDraft({...draft,current_country:event.target.value})} disabled={saveBusy}/></label>
         <label>Club contract expiry<input type="date" value={draft.contract_expiry} onChange={event=>setDraft({...draft,contract_expiry:event.target.value})} disabled={saveBusy}/></label>
        </section>
-       <section className={styles.editPanel}><h3>Agency Information</h3><p className={styles.editHelp}>Agent assignments and representation agreements are managed separately to keep their permissions and history intact.</p><PlayerStaffControl playerId={playerId} scope={cacheScope} rpc={rpc}/></section>
+       <section className={styles.editPanel}><h3>Agency Information</h3><p className={styles.editHelp}>Change the lead agent from the player profile. Tagged staff receive reminders and do not automatically gain player access.</p><PlayerStaffControl playerId={playerId} scope={cacheScope} rpc={rpc}/></section>
       </div>
      </div>
      {saveError?<p role="alert" className={styles.editError}>{saveError}<button type="button" onClick={()=>void reload()} disabled={saveBusy}>Reload record</button></p>:null}
@@ -275,6 +276,7 @@ export default function PlayerExperienceDetail({playerId,summary,cacheScope,canM
       <div className={styles.profileInfoGrid}>
        <div className={styles.profileInfoColumn}>
         <ContractCard title="Agency Contract Expiry" expiry={representation?.end_date} empty={representation?'No expiry recorded':'No active agreement'}/>
+        {canEdit?<PlayerLeadAgentControl playerId={playerId} scope={cacheScope} rpc={rpc} onChanged={async()=>{await Promise.allSettled([reload(),onRefresh()]);}}/>:null}
         <div className={styles.staffCard}><PlayerStaffControl playerId={playerId} scope={cacheScope} rpc={rpc}/></div>
        </div>
        <div className={styles.quickLinks}>

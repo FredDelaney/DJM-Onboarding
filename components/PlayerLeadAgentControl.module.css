@@ -1,0 +1,43 @@
+.root{position:relative;display:grid;gap:11px;min-height:106px;border:1px solid #e0e9f4;border-radius:17px;padding:16px 18px;background:white;color:#1e3553;box-shadow:0 2px 6px #152e4810}
+.title{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.title>span{display:inline-flex;align-items:center;gap:9px;color:#6c82a0;font-size:12px;font-weight:720}
+.title>button{display:grid;place-items:center;width:42px;height:42px;min-height:42px;flex:none;border:1px solid transparent;border-radius:11px;background:#f4f8fe;color:#6486b0;cursor:pointer}
+.title>button:hover{border-color:#d6e6f7;background:#edf5ff}
+.title>button:focus-visible,.option:focus-visible,.footer button:focus-visible,.popoverHeading button:focus-visible{outline:2px solid var(--agency-primary,#3388fb);outline-offset:2px}
+.person{display:flex;align-items:center;gap:10px;flex-wrap:wrap;min-width:0}
+.avatar{display:inline-grid;place-items:center;flex:none;width:32px;height:32px;border-radius:50%;background:#eaf3ff;color:#4285e8;font-size:11px;font-weight:790}
+.person strong{font-size:13px;font-weight:700;color:#233754;overflow-wrap:anywhere}
+.active{font-size:10px;color:#7287a4;padding:3px 8px;border-radius:15px;background:#f4f8fd}
+.loading,.retry{font-size:12px;color:#7185a2}
+.retry{border:0;background:none;min-height:40px;cursor:pointer;color:var(--agency-primary,#3388fb)}
+.notice{margin:0;font-size:11px;color:#18835f}
+.popover{position:absolute;z-index:65;top:47px;right:9px;width:min(312px,calc(100vw - 42px));padding:0;border:1px solid #dfe6f0;border-radius:14px;background:#fff;box-shadow:0 18px 44px #203b5d2b;overflow:hidden}
+.popoverHeading{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:13px 13px 10px 16px;border-bottom:1px solid #edf1f6}
+.popoverHeading strong{font-size:11px;letter-spacing:.075em;font-weight:790;color:#62738b}
+.popoverHeading button{display:grid;place-items:center;min-height:38px;min-width:38px;border:0;border-radius:9px;background:white;color:#8496af;cursor:pointer}
+.search{display:flex;align-items:center;gap:8px;min-height:43px;margin:12px 12px 5px;padding:0 11px;border:1px solid #e0e9f3;border-radius:10px;color:#96a6bd}
+.search:focus-within{outline:2px solid #dcecff;border-color:#90bdfe}
+.search input{border:0;background:transparent;min-width:0;flex:1;outline:0;font:inherit;font-size:12px;color:#2a405e}
+.search input::placeholder{color:#a0aec0}
+.options{display:grid;max-height:min(292px,42vh);overflow:auto;padding:4px 7px;overscroll-behavior:contain}
+.option{display:flex;align-items:center;gap:10px;min-height:46px;padding:5px 10px;border:1px solid transparent;border-radius:9px;background:white;text-align:left;font:inherit;font-size:13px;color:#33475f;cursor:pointer}
+.option:hover{background:#f5f9ff}
+.option[aria-selected=true]{background:#eef5ff;border-color:#e3edfc}
+.option>span:nth-child(2){min-width:0;flex:1;overflow-wrap:anywhere}
+.option svg:last-child{color:var(--agency-primary,#3388fb)}
+.option:disabled{opacity:.5;cursor:wait}
+.empty{font-size:12px;color:#8293ac;text-align:center;padding:12px}
+.explain{display:flex;align-items:start;gap:7px;margin:0;padding:10px 14px;border-top:1px solid #edf1f7;color:#798da7;font-size:11px;line-height:1.5}
+.explain svg{flex:none;margin-top:1px;color:#4489db}
+.error{margin:4px 12px;color:#ad3933;font-size:12px}
+.footer{display:flex;align-items:center;justify-content:flex-end;gap:8px;padding:10px 12px 13px}
+.footer button{display:inline-flex;align-items:center;justify-content:center;gap:6px;min-height:42px;padding:0 13px;border:1px solid #d9e5f3;border-radius:10px;background:white;color:#547091;font-size:12px;font-weight:700;cursor:pointer}
+.footer button.primary{background:var(--agency-primary,#3388fb);border-color:var(--agency-primary,#3388fb);color:var(--agency-on-primary,#fff)}
+.footer button:disabled{opacity:.52;cursor:not-allowed}
+@media(max-width:760px){.root{padding:14px}.popover{top:43px;right:-2px}}
+
+/* On phones, make the whole editor usable without scrolling behind it. */
+@media(max-width:760px){
+ .popover{position:fixed;top:auto;bottom:max(12px,env(safe-area-inset-bottom));left:50%;right:auto;transform:translateX(-50%);width:min(364px,calc(100vw - 24px));max-height:calc(100dvh - 24px);overflow-y:auto}
+ .options{max-height:min(246px,36dvh)}
+}
