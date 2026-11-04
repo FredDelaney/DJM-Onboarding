@@ -29,7 +29,8 @@ test('represented players and recruitment targets are real URL-backed workspaces
   assert.match(players, /params\.set\('player', id\)/);
   assert.match(players, /params\.set\('target', id\)/);
   assert.match(players, /role="region" aria-label=\{`\$\{playerName\} player workspace`\}/);
-  assert.match(players, /aria-label="Recruitment target workspace"/);
+  assert.match(players, /recruitment=\{\{/);
+  assert.match(readFileSync('components/PlayerExperienceDetail.tsx','utf8'), /Recruitment target unavailable/);
   assert.match(players, /<ArrowLeft size=\{18\}/);
   assert.match(playersCss, /\.playerPagePanel[\s\S]*box-shadow:\s*none/);
 });

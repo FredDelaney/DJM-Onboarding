@@ -20,7 +20,12 @@ try{
    await page.waitForFunction(()=>document.querySelector('button[aria-label="Table view"]')?.getAttribute('aria-pressed')==='true');
   }
   await directory.getByRole('table').waitFor();
-  console.log('Players hydrated, table visible at '+width+'px');
+  // Recruitment is included in Players but remains a separate, unpromoted record.
+  const prospectRow=directory.getByRole('row').filter({hasText:'Recruitment Prospect'});
+  await prospectRow.waitFor();
+  assert.equal(await prospectRow.getByText('Prospected',{exact:true}).count(),1);
+  assert.equal(await prospectRow.getByRole('button',{name:'Manage agents for Recruitment Prospect'}).count(),0);
+  console.log('Players and recruitment prospect hydrated at '+width+'px');
   await page.screenshot({path:'/tmp/redream-athlivo-qa/players-'+width+'.png',fullPage:false});
   assert.ok(await directory.getByRole('row').count()>5);
   await directory.locator('summary').filter({hasText:'Filter'}).click();
@@ -29,10 +34,35 @@ try{
   assert.ok(await directory.getByRole('row').count()>5);
   await directory.getByRole('button',{name:'Clear all'}).click();
   await directory.locator('summary').filter({hasText:'Filter'}).click();
+  await directory.locator('summary').filter({hasText:'Filter'}).click();
+  await directory.getByRole('button',{name:'Status',exact:true}).click();
+  await directory.getByRole('combobox',{name:'Agency status filter'}).selectOption('prospected');
+  assert.equal(await directory.getByRole('row').count(),2,'Prospected filters to the single recruitment record');
+  await directory.getByRole('button',{name:'Clear all'}).click();
+  await directory.locator('summary').filter({hasText:'Filter'}).click();
+  await directory.getByRole('button',{name:'Open Recruitment Prospect'}).click();
+  await page.waitForURL(url=>url.searchParams.get('target')==='qa-target'&&url.searchParams.get('fromRoster')==='1');
+  const recruitmentProfile=page.getByRole('region',{name:'Recruitment Prospect player workspace'});
+  const prospectIdentity=recruitmentProfile.getByRole('heading',{name:'Recruitment Prospect'});
+  await prospectIdentity.waitFor();
+  assert.ok(await prospectIdentity.evaluate(heading=>{const rect=heading.getBoundingClientRect();return rect.top>=0&&rect.bottom<=innerHeight;}),'Opening a prospect brings the identity into view');
+  await recruitmentProfile.getByText('Prospected',{exact:true}).waitFor();
+  await recruitmentProfile.getByRole('heading',{name:'Club Information',exact:true}).waitFor();
+  for(const [tab,heading] of [['Tasks','Tasks'],['Updates','Updates'],['Deals','Deals'],['Profile','Club Information']]){
+   await recruitmentProfile.getByRole('navigation',{name:'Player sections'}).getByRole('button',{name:tab}).click();
+   await recruitmentProfile.getByRole('heading',{name:heading,exact:true}).waitFor();
+  }
+  assert.equal(await recruitmentProfile.getByRole('button',{name:'Change status for Recruitment Prospect'}).count(),0);
+  assert.equal(await recruitmentProfile.getByRole('button',{name:'Manage agents for Recruitment Prospect'}).count(),0);
+  assert.equal(await recruitmentProfile.getByRole('link',{name:'Player Profile'}).count(),0);
+  await page.screenshot({path:'/tmp/redream-athlivo-qa/recruitment-player-profile-'+width+'.png',fullPage:false});
+  await page.getByRole('button',{name:'Back to Players'}).click();
+  await page.waitForURL(url=>!url.searchParams.has('target')&&!url.searchParams.has('tab'));
   await directory.getByRole('button',{name:'Open José Silva'}).click();
   const player=page.getByRole('region',{name:'José Silva player workspace'});
   await player.waitFor();
   await player.getByRole('heading',{name:'Club Information',exact:true}).waitFor();
+  assert.ok(await player.getByRole('heading',{name:'José Silva',exact:true}).evaluate(heading=>{const rect=heading.getBoundingClientRect();return rect.top>=0&&rect.bottom<=innerHeight;}),'Opening a player brings the identity into view');
   assert.equal(await player.getByRole('link',{name:'Player Profile',exact:true}).count(),1);
   const club=player.getByRole('link',{name:'Verified Club',exact:true});
   assert.match(await club.getAttribute('href'),/\?view=network&network=clubs&clubsv2=1&club=30000000-0000-4000-8000-000000000011$/);

@@ -16,6 +16,7 @@ type Props={
   onRecruitment:()=>void; onLoadMore?:()=>Promise<void>; directoryRefreshing?:boolean;
   scope?:string;rpc?:<T,>(name:string,args?:Record<string,unknown>)=>Promise<T>;
   canManageAgents?:boolean;onAgentsChanged?:()=>Promise<void>;
+  recruitmentError?:string;onRetryRecruitment?:()=>Promise<void>;recruitmentTruncated?:boolean;
 };
 type Col='club'|'age'|'nationality'|'position'|'status'|'agent'|'stage';
 const allColumns: {id:Col; label:string}[]=[
@@ -27,7 +28,7 @@ const initials=(value:string)=>value.split(/\s+/).filter(Boolean).slice(0,2).map
 const text=(value:unknown)=>String(value??'').trim();
 const nameOf=(player:any)=>text(player?.identity?.name)||[text(player?.identity?.first_name),text(player?.identity?.last_name)].filter(Boolean).join(' ')||'Unnamed player';
 const nationOf=(player:any)=>Array.isArray(player?.identity?.nationalities)?text(player.identity.nationalities[0]):text(player?.identity?.nationality);
-const statusOf=(player:any)=>playerAgencyStatus(player?.identity?.agency_status);
+const statusOf=(player:any)=>player?.roster_source==='recruitment'?'prospected':playerAgencyStatus(player?.identity?.agency_status);
 const agentsOf=(player:any):PlayerAgent[]=>{
  if(player?.access?.restricted)return [];
  const agents=player?.identity?.assigned_agents;
@@ -60,7 +61,7 @@ const expiryCategory=(value:unknown)=>{
 const contractOptions=[{value:'expired',label:'Expired'},{value:'soon',label:'Expiring within 90 days'},{value:'future',label:'More than 90 days left'},{value:'missing',label:'Not recorded'}];
 function Portrait({player}:{player:any}){const name=nameOf(player);const src=publicFile('player-public',text(player?.identity?.profile_photo_path)||null);return <span className={styles.listPortrait}>{src?<img src={src} alt="" loading="lazy"/>:initials(name)}</span>;}
 
-export default function PlayerDirectory({players,total,hasMore,search,onSearch,onOpen,onCreate,canCreate,onRecruitment,onLoadMore,directoryRefreshing=false,scope='',rpc,canManageAgents=false,onAgentsChanged}:Props){
+export default function PlayerDirectory({players,total,hasMore,search,onSearch,onOpen,onCreate,canCreate,onRecruitment,onLoadMore,directoryRefreshing=false,scope='',rpc,canManageAgents=false,onAgentsChanged,recruitmentError='',onRetryRecruitment,recruitmentTruncated=false}:Props){
  const [mode,setMode]=useState<'table'|'cards'>('table');
  useEffect(()=>{
   const media=window.matchMedia('(max-width:680px)');
@@ -85,7 +86,8 @@ export default function PlayerDirectory({players,total,hasMore,search,onSearch,o
   return {
    agent:Array.from(agents.entries()).sort((a,b)=>a[1].localeCompare(b[1])).map(([value,label])=>({value,label})),
    position:unique(players.map(p=>text(p?.identity?.primary_position))),
-   status:PLAYER_AGENCY_STATUSES.map(status=>({...status})),
+   status:[...PLAYER_AGENCY_STATUSES.map(status=>({...status})),
+    ...(players.some(p=>p?.roster_source==='recruitment')?[{value:'prospected',label:'Prospected'}]:[])],
    agencyContract:contractOptions,clubContract:contractOptions,
    club:unique(players.map(p=>text(p?.identity?.current_club))),
    clubCountry:unique(players.map(p=>text(p?.identity?.current_country))),
@@ -118,6 +120,8 @@ export default function PlayerDirectory({players,total,hasMore,search,onSearch,o
  const changeSort=(field:'name'|'age'|'club')=>{if(sort===field)setAscending(!ascending);else{setSort(field);setAscending(true);}};
  const toggleSelection=(id:string)=>setSelected(current=>current.includes(id)?current.filter(value=>value!==id):[...current,id]);
  const allChecked=visible.length>0&&visible.every(player=>selected.includes(String(player.player_id)));
+ const selectedRecord=selected.length===1?players.find(player=>String(player.player_id)===selected[0]):null;
+ const hasProspectedRows=players.some(player=>player?.roster_source==='recruitment');
  const loadMore=async()=>{if(!onLoadMore||loadingMore||directoryRefreshing)return;setLoadingMore(true);setMoreError('');try{await onLoadMore();}catch(error){setMoreError(friendlyError(error));}finally{setLoadingMore(false);}};
  const clear=()=>{setFilters(initialFilters);onSearch('');};
  return <section className={styles.directory} aria-label="Players directory">
@@ -158,7 +162,7 @@ export default function PlayerDirectory({players,total,hasMore,search,onSearch,o
    </details>
    {(filterCount||search)?<button type="button" className={styles.clearFilters} onClick={clear}>Clear all</button>:null}
    <button type="button" className={styles.recruitmentLink} onClick={onRecruitment}>Recruitment <ChevronDown size={13}/></button>
-   {selected.length?<div className={styles.selectionActions}><span>{selected.length} selected</span>{selected.length===1?<button type="button" onClick={()=>onOpen(selected[0])}>Open player</button>:null}<button type="button" aria-label="Clear selection" onClick={()=>setSelected([])}><X size={15}/></button></div>:null}
+   {selected.length?<div className={styles.selectionActions}><span>{selected.length} selected</span>{selected.length===1?<button type="button" onClick={()=>onOpen(selected[0])}>{selectedRecord?.roster_source==='recruitment'?'Open recruitment':'Open player'}</button>:null}<button type="button" aria-label="Clear selection" onClick={()=>setSelected([])}><X size={15}/></button></div>:null}
   </div>
   <div className={styles.tableScroll} data-roster-table-mode={mode}>
    {mode==='table'?<table className={styles.rosterTable}><thead><tr>
@@ -177,13 +181,13 @@ export default function PlayerDirectory({players,total,hasMore,search,onSearch,o
     {included('age')?<td>{ageOf(identity.date_of_birth)??'–'}</td>:null}
     {included('nationality')?<td>{nationOf(player)?<span className={styles.nationalityCell}><CountryFlag country={nationOf(player)}/><span className={styles.cellClamp}>{nationOf(player)}</span></span>:'–'}</td>:null}
     {included('position')?<td>{text(identity.primary_position)||'–'}</td>:null}
-    {included('status')?<td><span className={styles.statusChip} data-status={status}>{playerAgencyStatusLabel(status)}</span></td>:null}
-    {included('agent')?<td className={styles.agentCell}>{rpc?<PlayerTeamAgentsControl playerId={id} playerName={nameOf(player)} initialAgents={agents} scope={scope} rpc={rpc} canManage={canManageAgents&&!player?.access?.restricted} onChanged={onAgentsChanged}/>:agents.length?<span>{agents.map(a=>a.name).join(', ')}</span>:'–'}</td>:null}
+    {included('status')?<td><span className={styles.statusChip} data-status={status}>{status==='prospected'?'Prospected':playerAgencyStatusLabel(status)}</span></td>:null}
+    {included('agent')?<td className={styles.agentCell}>{player?.roster_source==='recruitment'?'–':rpc?<PlayerTeamAgentsControl playerId={id} playerName={nameOf(player)} initialAgents={agents} scope={scope} rpc={rpc} canManage={canManageAgents&&!player?.access?.restricted} onChanged={onAgentsChanged}/>:agents.length?<span>{agents.map(a=>a.name).join(', ')}</span>:'–'}</td>:null}
     {included('stage')?<td>{stageOf(player)||'–'}</td>:null}
    </tr>;})}
-   </tbody></table>:<div className={styles.playerTiles}>{visible.map(player=>{const identity=player?.identity||{};return <button type="button" key={player.player_id} className={styles.playerTile} aria-label={'Open '+nameOf(player)} onClick={()=>onOpen(String(player.player_id))}><Portrait player={player}/><strong>{nameOf(player)}</strong><span>{[identity.primary_position,identity.current_club].filter(Boolean).join(' · ')||'Player details'}</span><small>{nationOf(player)||'Nationality not recorded'}</small></button>;})}</div>}
+   </tbody></table>:<div className={styles.playerTiles}>{visible.map(player=>{const identity=player?.identity||{};return <button type="button" key={player.player_id} className={styles.playerTile} aria-label={'Open '+nameOf(player)} onClick={()=>onOpen(String(player.player_id))}><Portrait player={player}/><strong>{nameOf(player)}</strong><span>{[identity.primary_position,identity.current_club].filter(Boolean).join(' · ')||'Player details'}</span><span className={styles.statusChip} data-status={statusOf(player)}>{statusOf(player)==='prospected'?'Prospected':playerAgencyStatusLabel(statusOf(player))}</span><small>{nationOf(player)||'Nationality not recorded'}</small></button>;})}</div>}
    {!visible.length?<div className={styles.directoryEmpty}><Users size={25}/><h3>{search||filterCount?'No players found':'No players yet'}</h3><p>{search||filterCount?'Change your search or filters.':'Add your first player to start building your squad.'}</p></div>:null}
   </div>
-  <footer className={styles.directoryFooter}><span>{players.length} of {total} players loaded.{search||filterCount?' ' + visible.length + ' match current filters.':''}{hasMore&&filterCount?' Filters apply to loaded players.':''}</span>{hasMore?<button type="button" disabled={loadingMore||directoryRefreshing} onClick={()=>void loadMore()}>{loadingMore||directoryRefreshing?<LoaderCircle size={16}/>:<Plus size={16}/>} {directoryRefreshing?'Refreshing players...':loadingMore?'Loading...':moreError?'Retry loading players':'Load more players'}</button>:null}{moreError?<p role="alert">{moreError}</p>:null}</footer>
+  <footer className={styles.directoryFooter}><span>{players.length} of {total} {hasProspectedRows?'players and prospects':'players'} loaded.{search||filterCount?' ' + visible.length + ' match current filters.':''}{hasMore&&filterCount?' Filters apply to loaded players.':''}</span>{recruitmentError?<p role="alert">Recruitment prospects are temporarily unavailable. <button type="button" onClick={()=>void onRetryRecruitment?.()} disabled={!onRetryRecruitment||directoryRefreshing}>Retry recruitment</button></p>:null}{recruitmentTruncated?<p>Showing the first 500 recruitment prospects. Use Recruitment to review the full pipeline.</p>:null}{hasMore?<button type="button" disabled={loadingMore||directoryRefreshing} onClick={()=>void loadMore()}>{loadingMore||directoryRefreshing?<LoaderCircle size={16}/>:<Plus size={16}/>} {directoryRefreshing?'Refreshing players...':loadingMore?'Loading...':moreError?'Retry loading players':'Load more players'}</button>:null}{moreError?<p role="alert">{moreError}</p>:null}</footer>
  </section>;
 }

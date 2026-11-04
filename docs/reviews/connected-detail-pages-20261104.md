@@ -51,11 +51,13 @@ All 2,354 automated tests pass. The new PostgreSQL fixture verifies the exact re
 
 Local evidence includes 2,356 automated tests, database tests for exact decimal ranges, tenant and role checks, stale revision and atomic create, and browser fixtures for saving and reopening a request, filters, timeline recovery and keyboard dismissal. Players and Requests were exercised at 320, 390, 768 and 1440 pixels. The desktop table, editor and timeline were compared with the supplied references at 1512 × 828. TypeScript and the production build passed. The workspace entry is 123,336 of 150,000 gzip bytes.
 
+After aligning with main `e3b18da`, 2,369 automated tests passed. The browser check confirms that opening either kind of player record brings its identity into view at all four widths. All 14 recruitment scenarios passed, including the restricted player view after promotion by an agent. The integrated build and typecheck passed, with 123,286 of 150,000 gzip bytes in the workspace entry.
+
 Remaining screenshot differences include a verified next-match card, a roster Strategy filter backed by saved data, and safe club reassignment for a request with linked candidates and pitches. The request editor keeps position and currency as editable text so older values remain usable. Agency agreement expiry is managed through the agreement workflow. Full reference parity and signed-in staging acceptance remain open.
 
 ### Complete staging manifest for this candidate
 
 1. Apply `20261104133424_connect_player_detail_to_club_and_work.sql` and `20261104142417_exact_club_request_pitch_history.sql` in order, using the checks above.
-2. Apply `20261104184712_club_request_editor_preferences.sql`. SHA-256 `adf43ce9d1810d45123f3e4ef21c29ef4936df1223491ccd38f223358fac179d`. Check that the create wrapper is service-role only, the patch rejects stale revisions and restricted staff, and reads and assignments stay within the selected tenant.
+2. Verify staging's ledger for main's `20261104152422_recruitment_promotion_signed_agency_status.sql`. Apply it in order if pending after reviewing the promotion writer. Then apply `20261104184712_club_request_editor_preferences.sql`. SHA-256 `adf43ce9d1810d45123f3e4ef21c29ef4936df1223491ccd38f223358fac179d`. Check that the create wrapper is service-role only, the patch rejects stale revisions and restricted staff, and reads and assignments stay within the selected tenant.
 3. Deploy `agency-market` and `agency-os` to ReDream staging, then the matching frontend. Confirm that the official transfer-window feed loads from the deployment.
 4. With staging fixtures, create and edit a request, reopen its exact record, and verify assignment, ranges and the shortlist-to-reply journey. Repeat with a restricted staff member and a second tenant to confirm isolation, then verify the modal and timeline on a physical phone.

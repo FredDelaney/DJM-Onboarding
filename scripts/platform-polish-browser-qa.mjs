@@ -225,7 +225,11 @@ await mkdir(marketingDir,{recursive:true});await cp(new URL('../tests/fixtures/p
     }
     if(suite==='misc'&&screen==='workspaces')await page.getByRole('link',{name:/Open player portal/}).waitFor();
     if(suite==='recruitment'){
-     if(screen==='detail')await page.getByLabel('Interaction channel',{exact:true}).waitFor();
+     if(screen==='detail'){
+      const player=page.getByRole('region',{name:'Example Recruitment Player player workspace'});
+      await player.getByRole('navigation',{name:'Player sections'}).getByRole('button',{name:'Updates',exact:true}).click();
+      await player.getByLabel('Interaction channel',{exact:true}).waitFor();
+     }
      else await page.getByText('Example Recruitment Player',{exact:true}).first().waitFor();
     }
     if(suite==='account'){

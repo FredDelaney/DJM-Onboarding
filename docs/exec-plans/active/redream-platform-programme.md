@@ -2,7 +2,7 @@
 
 Owner: Codex, requested by Jesse Edge on 23 October 2026.
 Status: active. The whole programme remains open.
-Current working branch: `codex/redream-connected-details` from main `608d503`. PR 282 merged on 30 October at `bd94871`. PR 281 is closed without merge.
+Current working branch: `codex/redream-connected-details`, aligned with main `e3b18da`. PR 282 merged on 30 October at `bd94871`. PR 281 is closed without merge.
 Current worktree: `/Users/jesseedge/.codex/worktrees/redream-connected-details/New project`.
 Baseline: merged production PR 250, `09831dadc94621fb43e9d56265c9bd2d4a8a2bcd`.
 
@@ -29,6 +29,8 @@ This plan is the persistent source of truth. Earlier audit/release notes remain 
 Report a validated-checklist percentage as validated/released rows divided by all 63 programme and UI checks, as requested by Jesse. Current formal acceptance is 2/63 (3%); this does not estimate how much code exists or substitute for product quality. A code commit, mocked provider test or desktop screenshot alone does not prove live integration, physical-device quality or programme completion. Final completion requires every applicable register and UI row accepted, with any exclusions explicitly resolved with the user.
 
 ## Current checkpoint
+
+- UI-04 / UI-06. PR 304 resolves the two shared Player profile conflicts with main `e3b18da`. The prospect and signed-player views retain one profile layout, with recruitment writes using the target identity and player tasks, links, agent assignments and pitch history using the canonical player identity. Opening a profile brings the identity into view while Back restores the roster's saved position. All 2,369 automated tests passed on the integrated branch. The four-width profile check and all 14 recruitment scenarios passed, including the agent's restricted view after promotion. The recruitment promotion migration from main is separate from the three PR 304 migrations. Check its staging ledger state during release preflight.
 
 - UI-04 / UI-06 / UI-08 / REL-01. The 4 November screenshot pass brings the Players filter and agent management controls, the Requests table and editor, and FIFA transfer windows into the existing workspace. The additive request migration stores window preference, origin, loan option, budget minimums and active agency staff on the saved request. Local database, four-width browser, typecheck, build and bundle checks pass. See [screenshot workflow evidence and release manifest](../../reviews/connected-detail-pages-20261104.md#players-and-requests-screenshot-workflows). Hosted acceptance remains open. Remaining screenshot gaps include a verified next-match feed, roster Strategy data, and safe club reassignment for an existing request. Continue with those dependencies and the exact document handoff while preserving the rest of the register.
 

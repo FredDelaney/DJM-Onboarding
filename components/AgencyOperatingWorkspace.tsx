@@ -856,19 +856,9 @@ export default function AgencyOperatingWorkspace() {
             recruitment: recruitment?.recruitment || {},
           });
         } else {
-          let response = await readWithDeadline(invoke<any>('players_workspace', { limit: 100, offset: 0 }));
-          let directory = response?.players || {};
-          const items = [...(directory.items || [])];
-          const wanted = Math.max(100, cached?.directory?.items?.length || 100);
-          while (directory.has_more && items.length < wanted) {
-            if (!isCurrent()) return;
-            response = await readWithDeadline(invoke<any>('players_workspace', { limit: 100, offset: directory.next_offset }));
-            const next = response?.players || {};
-            if (!(next.next_offset > directory.next_offset)) break;
-            directory = next;
-            items.push(...(next.items || []));
-          }
-          merge({ directory: { ...directory, items } });
+          await (await import('@/lib/players-directory-read')).loadPlayersDirectory(
+            invoke,canCreateRecords,cached?.directory?.items?.length||0,isCurrent,merge,
+          );
         }
       } else if (view === 'opportunities') {
         if (opportunitiesSection === 'deals') {
@@ -1029,6 +1019,7 @@ export default function AgencyOperatingWorkspace() {
     }
   }, [
     inlineEntityWorkspaceOpen,
+    canCreateRecords,
     invoke,
     opportunitiesSection,
     playersSection,
