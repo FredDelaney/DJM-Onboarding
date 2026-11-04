@@ -89,6 +89,13 @@ try{
      await page.getByRole('combobox',{name:'Contact direction',exact:true}).selectOption('inbound');
      await page.getByRole('button',{name:'Save interaction',exact:true}).click();await page.getByRole('status').filter({hasText:'Interaction saved.'}).waitFor();
      await page.waitForFunction(()=>document.activeElement?.getAttribute('role')==='status'&&document.activeElement.textContent.includes('Interaction saved.'));
+     const readCount=writes('recruitment_target').length;
+     const playerReads=writes('player_workspace').length;
+     const refreshed=page.waitForRequest(request=>request.postData()?.includes('recruitment_target'));
+     await page.getByRole('button',{name:'Refresh activity',exact:true}).click();
+     await refreshed;
+     assert.ok(writes('recruitment_target').length>readCount,'Refreshing recruitment history reads its own recruitment target');
+     assert.equal(writes('player_workspace').length,playerReads,'Recruitment history never reads a canonical player with a prospect ID');
      await switchTab('Tasks');
      await page.getByLabel('Follow-up date and time',{exact:true}).fill('2030-03-31T02:30');await page.getByRole('button',{name:'Save follow-up',exact:true}).click();await page.getByRole('alert').filter({hasText:'clock change'}).waitFor();assert.equal(writes('recruitment_set_next_action').length,0,'A nonexistent local time must never become a silent shifted reminder');
      await page.getByLabel('Follow-up date and time',{exact:true}).fill('2030-11-15T10:30');await page.getByRole('button',{name:'Save follow-up',exact:true}).click();
