@@ -30,6 +30,8 @@ Report a validated-checklist percentage as validated/released rows divided by al
 
 ## Current checkpoint
 
+- PR 304 CI follow-up. Updated the club-deal checks to expect the title-specific accessible button and supplied the exact player IDs in the profile-photo and recruitment fixtures. The club contracts, profile and recruitment browser fixtures, and mobile club-to-deal history journey pass locally. Hosted checks and staging release acceptance remain open.
+
 - On 4 November Jesse shifted the design reference to the Athlivo-style work already merged for Dashboard, Clubs, Requests and Players. Continue from current main and preserve all 46 programme and 17 UI parent checks. The prior requirements prototype remains outside main and separate from this pass.
 - UI-04 / UI-06 / UI-08 / UI-09 / UI-10. The player detail now shows real open tasks and opens the exact Calendar task or deal. Verified club links, request records and contact employments hand off by saved record ID. The duplicate dossier actions are removed. Club requests use the recorded expiry, active state and commercial precision, with readable narrow cards. Player and club reads have bounded recovery. The staging candidate preserved the seven sampled responses and existing permissions, with four players' task IDs and totals checked before rollback. The hosted frontend acceptance and release gates remain open. See [connected detail pages](../../reviews/connected-detail-pages-20261104.md).
 - Next review the exact player-to-document handoff and the separate permissions for player files and agency drafts. Retain the current shortlist, role, device and independent-agency acceptance work while reviewing the matching frontend and migration.

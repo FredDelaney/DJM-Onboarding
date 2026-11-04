@@ -407,7 +407,7 @@ export async function verifyDealHistoryAndCrossView(page, url, dealA, dealB) {
   await club.waitFor();
   // Clubs v2 keeps deals under a dedicated tab instead of showing them on Overview.
   await club.getByRole('button', { name: 'Deals', exact: true }).click();
-  await club.getByRole('button', { name: 'Open deal', exact: true }).click();
+  await club.getByRole('button', { name: 'Open deal: Example transfer B', exact: true }).click();
   await heading.waitFor({ timeout: 3000 });
   assert.equal(new URL(page.url()).searchParams.get('view'), 'opportunities', 'Cross-section opening keeps the requested deal visible');
   assert.equal(new URL(page.url()).searchParams.get('record'), dealB);

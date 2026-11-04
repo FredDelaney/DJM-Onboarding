@@ -28,7 +28,7 @@ try{
    }else if(action==='recruitment_set_next_action'){records.get(body.prospect_id).next_action_at=body.next_action_at;value={result:{prospect_id:body.prospect_id,next_action_at:body.next_action_at}};}
    else if(action==='recruitment_set_stage'){Object.assign(records.get(body.prospect_id),{raw_stage:body.stage,ui_stage:body.stage==='signed'?'represented':'contact'});value={result:{prospect_id:body.prospect_id,stage:body.stage}};}
    else if(action==='recruitment_promote'){records.delete(body.prospect_id);value={result:{prospect_id:body.prospect_id,player_id:scenario==='invalid-promotion'?'not-a-player-id':playerId}};}
-   else if(action==='player_workspace')value={player:{identity:{name:'Alpha Prospect'},service:{}}};
+   else if(action==='player_workspace')value={player:{identity:{id:body.player_id,name:'Alpha Prospect'},service:{}}};
    else if(action==='player_profile')value={bundle:null};
    else if(action==='redream_player_staff_tags_v1')value={player_id:playerId,all_staff:false,user_ids:[],people:[],revision:0,can_edit:false};
    else return route.fulfill({status:400,json:{error:'Unexpected '+action}});
