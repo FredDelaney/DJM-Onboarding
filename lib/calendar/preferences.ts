@@ -1,5 +1,5 @@
 import { calendarPreferences,type BirthdayFilters } from './dates.ts';
-export const calendarLayers=['personal','company','meetings','followUps','agencyDates','birthdays'] as const;
+export const calendarLayers=['personal','company','meetings','followUps','agencyDates','birthdays','fixtures'] as const;
 export type CalendarLayer=typeof calendarLayers[number];
 export type CalendarPreferences={version:2;view:'month'|'agenda';layers:Record<CalendarLayer,boolean>;birthdays:BirthdayFilters};
 export function parseCalendarPreferences(raw:string|null):CalendarPreferences {

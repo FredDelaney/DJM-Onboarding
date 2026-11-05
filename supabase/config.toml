@@ -45,6 +45,9 @@ verify_jwt = true
 [functions.weekly-player-refresh]
 verify_jwt = false
 
+[functions.refresh-kickoff-fixtures]
+verify_jwt = false
+
 [functions.refresh-official-football-data]
 verify_jwt = false
 
