@@ -26,7 +26,7 @@ try {
   if(path.includes('/auth/v1/user'))result=user;
   else if(path.includes('/auth/v1/token'))result=session;
   else if(name==='tenants')result={tenants:[{tenant_id:'00000000-0000-0000-0000-000000000081',slug:'qa-find-flow',role:'owner',display_name:'Selected Fixture Agency',short_name:'Selected Agency'}]};
-  else if(name==='dashboard_snapshot')result={snapshot:{scope:body.scope,localDate:'2026-11-04',timeZone:'UTC',generatedAt:'2026-11-04T12:00:00Z',fixtures:[],clubRequests:[],upcomingEvents:[],recentActivity:[]}};
+  else if(name==='dashboard_snapshot')result={snapshot:{scope:body.scope,localDate:body.local_date||new Date().toISOString().slice(0,10),timeZone:'UTC',generatedAt:new Date().toISOString(),fixtures:[],clubRequests:[],upcomingEvents:[],recentActivity:[]}};
   else if(name==='home_focus')result={home:{commands:[]}};
   else if(name==='redream_autopilot_operations')result={deadlines:{items:[{entity_type:'club_need',entity_id:'00000000-0000-4000-8000-000000000091',deadline_type:'club_need_expiry',title:'Recorded club need expires',deadline_at:new Date(Date.now()-86400000).toISOString()}]}};
   else if(name==='players_workspace')result={players:{items:[{player_id:'fixture-player',identity:{name:'Example Player',primary_position:'Centre back',current_club:'Example FC',next_action:'Call the club about the trial',next_action_due:'2020-01-01',contract_expiry:'2027-06-30'},service:{next_control_fix:{fix_type:'set_player_next_action',instruction:'Review the representation plan'},next_service_move:{move_type:'maintain_player_plan',instruction:'Agree the next career step with the player'}}}],total:1,has_more:false}};
@@ -50,6 +50,26 @@ const waitForRead=async pending=>{let timer;try{await Promise.race([pending,new 
  const visit=async query=>{
   for(let attempt=0;attempt<60;attempt++)try{await page.goto(root+'/qa-fixture/qa-find-flow?coordinator=1&'+query);return;}catch(error){if(attempt===59)throw error;await new Promise(resolve=>setTimeout(resolve,250));}
  };
+ // A warm mobile return should display the verified snapshot before its live recheck.
+ await page.setViewportSize({width:390,height:844});
+ await visit('view=home');
+ await page.addStyleTag({content:'nextjs-portal{display:none!important}'});
+ const dashboardHeading=page.getByRole('heading',{name:'Club Requests',exact:true});
+ const mobileNav=page.getByRole('navigation',{name:'Mobile workspace'});
+ await dashboardHeading.waitFor();
+ await mobileNav.getByRole('link',{name:'People',exact:true}).click();
+ await page.getByRole('searchbox',{name:'Search players'}).waitFor();
+ stalled=new Set(['dashboard_snapshot']);
+ const dashboardRecheck=new Promise(resolve=>{started=resolve;});
+ await mobileNav.getByRole('link',{name:'Today',exact:true}).click();
+ await waitForRead(dashboardRecheck);
+ await dashboardHeading.waitFor({timeout:1000});
+ assert.equal(held.length,1,'Warm dashboard returns while the recheck is still pending');
+ stalled.clear();
+ await held.pop().fulfill({status:403,contentType:'application/json',body:'{"error":"Access denied"}'});
+ await page.getByRole('button',{name:'Retry dashboard',exact:true}).waitFor();
+ assert.equal(await dashboardHeading.isVisible(),false,'Failed revalidation withdraws the cached snapshot');
+ console.log('PASS: mobile Dashboard returns from Players while its scope is revalidated');
  // A real database deadline uses the same explicit recovery as a client deadline.
  await page.setViewportSize({width:390,height:844});
  statementTimeout=true;const previousDealReads=reads.filter(name=>name==='redream_autopilot_deals').length;

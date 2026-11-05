@@ -77,13 +77,18 @@ export async function readAgencyDashboardSnapshot(ctx:DashboardRequestContext) {
   // The 'Me' subset is derived from primary owner plus explicit staff_player_access.
   let players:Row[]=[];
   try {
-    const all=safeLimit(asRows(await client.from('players')
-      .select('id,first_name,last_name,primary_staff_user_id,current_club,contract_expiry,date_of_birth,football_status,archived_at')
-      .eq('tenant_id',tenantId).is('archived_at',null).limit(1001)),1000);
+    const [roster,assignments]=await Promise.all([
+      client.from('players')
+        .select('id,first_name,last_name,primary_staff_user_id,current_club,contract_expiry,date_of_birth,football_status,archived_at')
+        .eq('tenant_id',tenantId).is('archived_at',null).limit(1001),
+      scope==='me'?client.from('staff_player_access')
+        .select('player_id').eq('staff_user_id',userId).limit(1001):null,
+    ]);
+    const all=safeLimit(asRows(roster),1000);
     if(scope==='agency')players=all;
     else {
-      const assigned=safeLimit(asRows(await client.from('staff_player_access')
-        .select('player_id').eq('staff_user_id',userId).limit(1001)),1000);
+      if(!assignments)throw new Error('Player assignments unavailable');
+      const assigned=safeLimit(asRows(assignments),1000);
       const allowed=new Set(assigned.map(row=>str(row.player_id)));
       players=all.filter(row=>row.primary_staff_user_id===userId||allowed.has(str(row.id)));
     }

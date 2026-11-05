@@ -80,6 +80,11 @@ export default {fetch:async(req:Request)=>{
     if(!userId) return json({error:"Authenticated user identity missing"},401);
     const body=await req.json().catch(()=>({}));
     const action=String(body?.action||"home").toLowerCase();
+    // The signed-in viewer's settings can load while agency membership is verified.
+    const dashboardViewer=action==="dashboard_snapshot"
+      ? Promise.resolve(ctx.supabaseAdmin.from("profiles").select("display_name,timezone")
+        .eq("id",userId).maybeSingle()).catch(()=>null)
+      : null;
     const rpc=async(name:string,args:Record<string,unknown>={})=>{const {data,error}=await ctx.supabaseAdmin.rpc(name,args);if(error) throw error;return data;};
     const workspaces=((await rpc("platform_server_user_workspaces",{p_user_id:userId}))||[]) as Workspace[];
     if(!workspaces.length) return json({error:"Agency staff access required"},403);
@@ -227,8 +232,9 @@ export default {fetch:async(req:Request)=>{
     };
 
     if(action==="dashboard_snapshot"){
-      const {data:viewer,error:viewerError}=await ctx.supabaseAdmin.from("profiles")
-        .select("display_name,timezone").eq("id",userId).maybeSingle();
+      const viewerResult=await dashboardViewer;
+      if(!viewerResult)throw new Error("Dashboard viewer unavailable");
+      const {data:viewer,error:viewerError}=viewerResult;
       if(viewerError)throw viewerError;
       const zone=String(viewer?.timezone||"UTC").trim();
       const snapshot=await readAgencyDashboardSnapshot({
