@@ -150,10 +150,15 @@ export default function AgencyCalendarWorkspace({
   useEffect(()=>{dayStrip.current?.querySelector<HTMLElement>('[aria-pressed="true"]')?.scrollIntoView({block:'nearest',inline:'center',behavior:'auto'});},[selectedDate,view]);
   useEffect(()=>{const refresh=()=>setRefreshDates(n=>n+1),clock=()=>setNow(new Date());const timer=window.setInterval(clock,30000);window.addEventListener('redream:birthdays-updated',refresh);window.addEventListener('redream:responsibilities-updated',refresh);document.addEventListener('visibilitychange',clock);return()=>{clearInterval(timer);window.removeEventListener('redream:birthdays-updated',refresh);window.removeEventListener('redream:responsibilities-updated',refresh);document.removeEventListener('visibilitychange',clock);};},[]);
   const datesBusy=source.busy,datesError=source.errors.map(e=>e.message).join(' ');
-  const confirmedAssignments=projectConfirmedAssignedWork(source.sharedWork,workControl.overrides);
-  const sharedFollowUps=confirmedAssignments.filter((work:any)=>work.work_kind!=='calendar_task').map((work:any)=>({...work,task_id:work.work_id,...work.context}));
-   const existingFollowUps=source.dates?.follow_ups?.items||[];
-   const sourceData={...source.dates,follow_ups:{items:[...existingFollowUps,...sharedFollowUps.filter((work:any)=>!existingFollowUps.some((item:any)=>(item.work_kind||'task')===work.work_kind&&(item.work_id||item.task_id)===work.work_id))]}},birthdayData=source.birthdays;
+  const confirmedAssignments=useMemo(()=>projectConfirmedAssignedWork(source.sharedWork,workControl.overrides),[source.sharedWork,workControl.overrides]);
+  const sharedFollowUps=useMemo(()=>confirmedAssignments.filter((work:any)=>work.work_kind!=='calendar_task')
+    .map((work:any)=>({...work,task_id:work.work_id,...work.context})),[confirmedAssignments]);
+  const sourceData=useMemo(()=>{
+    const existingFollowUps=source.dates?.follow_ups?.items||[];
+    return {...source.dates,follow_ups:{items:[...existingFollowUps,...sharedFollowUps.filter((work:any)=>
+      !existingFollowUps.some((item:any)=>(item.work_kind||'task')===work.work_kind&&(item.work_id||item.task_id)===work.work_id))]}};
+  },[source.dates,sharedFollowUps]);
+  const birthdayData=source.birthdays;
   async function runTaskWrite(name:string,args:Record<string,unknown>){const scope=source.scope;try{const result=await rpc<any>(name,args);if(scopeRef.current!==scope)return;if(!result?.task)throw new Error('Task could not be confirmed.');source.confirmTask(result.task);setRefreshDates(n=>n+1);}catch(error){if(scopeRef.current===scope&&/task_owner_inactive|task_revision_conflict/.test(String((error as any)?.message||error)))setRefreshDates(n=>n+1);throw error;}}
   async function saveTask(input:TaskInput,task?:CalendarTask){await runTaskWrite(task?'redream_calendar_task_update_v1':'redream_calendar_task_create_v1',task?{p_task_id:task.id,p_expected_revision:task.revision,p_action:'edit',p_input:input,p_tenant_id:tenantId}:{p_input:input,p_tenant_id:tenantId});}
   async function taskAction(action:TaskAction,task:CalendarTask){await runTaskWrite('redream_calendar_task_update_v1',{p_task_id:task.id,p_expected_revision:task.revision,p_action:action,p_input:{},p_tenant_id:tenantId});}

@@ -29,6 +29,7 @@ try{
  await today.getByText('Club meeting',{exact:true}).waitFor();
  const todayReadCount=()=>page.evaluate(()=>{const today=new Date().toLocaleDateString('en-CA');return window.calendarReads.filter(read=>read.name==='redream_calendar_range'&&read.args.p_start===today&&read.args.p_end!==today.slice(0,7)+'-01').length;});
  const before=await todayReadCount();
+ assert.equal(before,0,'A complete current-month read also supplies today without a duplicate query');
  await page.getByRole('button',{name:'Next month',exact:true}).click();
  await page.waitForTimeout(300);
  assert.equal(await todayReadCount(),before,'Browsing another month must not restart today summary reads');
