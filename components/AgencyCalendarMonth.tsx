@@ -17,7 +17,10 @@ export default function AgencyCalendarMonth({ date, items, onSelect }: {
   date: string; items: Array<{key:string;title:string;dateAt:string;dateOnly?:boolean;kind:string}>; onSelect:(date:string)=>void;
 }) {
   const ref = useRef<CalendarRef>(null);
-  useEffect(()=>{ref.current?.getApi().gotoDate(date);},[date]);
+  useEffect(()=>{
+    const api=ref.current?.getApi();
+    if(api&&calendarDateKey(api.getDate()).slice(0,7)!==date.slice(0,7))api.gotoDate(date);
+  },[date]);
   const events = useMemo(()=>items.map(item=>({id:item.key,title:item.title,start:item.dateAt,allDay:item.dateOnly,
     className:item.kind==='birthday'?styles.monthBirthday:styles.monthEvent,
     color:item.kind==='birthday'?'#eaf6ef':'#edf3f9',contrastColor:item.kind==='birthday'?'#286a48':'#214965'})),[items]);

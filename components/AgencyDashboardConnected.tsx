@@ -26,14 +26,26 @@ function validSnapshot(value:unknown,scope:DashboardScope):value is DashboardSna
     Array.isArray(data.fixtures)&&Array.isArray(data.clubRequests)&&
     Array.isArray(data.upcomingEvents)&&Array.isArray(data.recentActivity);
 }
+type DashboardRead = {key:string;snapshot:DashboardSnapshot;viewerName:string;expiresAt:number};
+type DashboardResponse = {snapshot?:unknown;viewer_first_name?:string};
+type DashboardRequest = {key:string;promise:Promise<DashboardResponse>};
+export type DashboardReadCache = {latest:DashboardRead|null;pending:DashboardRequest|null};
+const CACHE_WINDOW_MS = 30_000;
+function recentDashboard(cache:DashboardReadCache,key:string,date:string) {
+  const entry=cache.latest;
+  return entry?.key===key && entry.expiresAt>Date.now() &&
+    (date || todayInZone(entry.snapshot.timeZone))===entry.snapshot.localDate ? entry : null;
+}
+
 export default function AgencyDashboardConnected({
-  invoke,tenantId,userId,role,refreshKey=0,basePath,agencyName,agencyMark,onCreate,onOpenYourDay,children,
+  invoke,tenantId,userId,role,refreshKey=0,cache,basePath,agencyName,agencyMark,onCreate,onOpenYourDay,children,
 }: {
   invoke:<T=any>(action:string,body?:Record<string,unknown>)=>Promise<T>;
   tenantId:string;
   userId:string;
   role:string;
   refreshKey?:number;
+  cache:DashboardReadCache;
   basePath:string;
   agencyName:string;
   agencyMark?:ReactNode;
@@ -45,10 +57,12 @@ export default function AgencyDashboardConnected({
   const initialScope:DashboardScope=canViewAgency?'agency':'me';
   const [scope,setScope]=useState<DashboardScope>(initialScope);
   const effectiveScope:DashboardScope=canViewAgency?scope:'me';
-  const [viewerName,setViewerName]=useState('');
   const [date,setDate]=useState('');
   const [revision,setRevision]=useState(0);
-  const [snapshot,setSnapshot]=useState<DashboardSnapshot|null>(null);
+  const cacheKey=JSON.stringify([tenantId,userId,role,effectiveScope,refreshKey,date]);
+  const [loaded,setLoaded]=useState(()=>recentDashboard(cache,cacheKey,date));
+  const snapshot=loaded?.key===cacheKey?loaded.snapshot:null;
+  const viewerName=loaded?.key===cacheKey?loaded.viewerName:'';
   const [loading,setLoading]=useState(true);
   const [error,setError]=useState('');
   const request=useRef(0);
@@ -56,19 +70,36 @@ export default function AgencyDashboardConnected({
   useEffect(()=>{
     const ticket=++request.current;
     let active=true;
-    setSnapshot(null);
+    setLoaded(recentDashboard(cache,cacheKey,date));
     setLoading(true);
     setError('');
-    void readWithDeadline(invoke<{snapshot?:unknown;viewer_first_name?:string}>('dashboard_snapshot',{scope:effectiveScope,local_date:date})).then(result=>{
+    const requestKey=JSON.stringify([cacheKey,revision]);
+    let pending=cache.pending;
+    if(pending?.key!==requestKey){
+      const next={key:requestKey,promise:readWithDeadline(invoke<DashboardResponse>(
+        'dashboard_snapshot',{scope:effectiveScope,local_date:date},
+      ))};
+      const clear=()=>{if(cache.pending===next)cache.pending=null;};
+      cache.pending=pending=next;
+      void next.promise.then(clear,clear);
+    }
+    void pending.promise.then(result=>{
       if(!active||ticket!==request.current)return;
       if(!validSnapshot(result?.snapshot,effectiveScope))throw new Error('Dashboard response could not be verified.');
-      setViewerName(typeof result.viewer_first_name==='string'?result.viewer_first_name.slice(0,80):'');
-      setSnapshot(result.snapshot);
+      const entry={
+        key:cacheKey,snapshot:result.snapshot,expiresAt:Date.now()+CACHE_WINDOW_MS,
+        viewerName:typeof result.viewer_first_name==='string'?result.viewer_first_name.slice(0,80):'',
+      };
+      cache.latest=entry;
+      setLoaded(entry);
     }).catch(()=>{
-      if(active&&ticket===request.current)setError('Unable to load this dashboard.');
+      if(!active||ticket!==request.current)return;
+      if(cache.latest?.key===cacheKey)cache.latest=null;
+      setLoaded(null);
+      setError('Unable to load this dashboard.');
     }).finally(()=>{if(active&&ticket===request.current)setLoading(false);});
     return ()=>{active=false;};
-  },[invoke,tenantId,userId,role,effectiveScope,date,revision,refreshKey]);
+  },[invoke,cache,cacheKey,effectiveScope,date,revision]);
 
   const changeScope=useCallback((next:DashboardScope)=>{
     if(next==='agency'&&!canViewAgency)return;

@@ -65,6 +65,7 @@ import {
   relativeDate,
 } from '@/lib/platform-client';
 import { supabase } from '@/lib/supabase';
+import type { DashboardReadCache } from '@/components/AgencyDashboardConnected';
 import type { AgencyActionRequest } from '@/components/AgencyActionDrawer';
 import type { AgencyIntelligenceRequest } from '@/components/AgencyEntityIntelligenceDrawer';
 import type { AgencyPursuitRequest } from '@/components/AgencyPursuitRoom';
@@ -126,7 +127,8 @@ function preloadWorkspaceView(view: View, showPlayerProfile = false) {
   // Start the visible destination alongside its reads, or on navigation intent.
   // Background data warming must not download every hidden page's code.
   let request: Promise<unknown> | undefined;
-  if (view === 'players') request = showPlayerProfile
+  if (view === 'home') request = import('@/components/AgencyDashboardConnected');
+  else if (view === 'players') request = showPlayerProfile
     ? import('@/components/AgencyPlayerProfile')
     : import('@/components/AgencyPlayersWorkspace');
   else if (view === 'network') request = import('@/components/AgencyNetworkWorkspace');
@@ -366,6 +368,7 @@ export default function AgencyOperatingWorkspace() {
   const [busy, setBusy] = useState(true);
   const loadSequenceRef = useRef(0);
   const workspaceSequenceRef = useRef(0);
+  const dashboardCache = useRef<DashboardReadCache>({latest:null,pending:null});
   const authIdentityRef = useRef('');
   const directoryRefreshRef = useRef(false);
   const [directoryRefreshing, setDirectoryRefreshing] = useState(false);
@@ -956,6 +959,7 @@ export default function AgencyOperatingWorkspace() {
       const identity = session?.user.id || '';
       if (identity !== authIdentityRef.current) {
         authIdentityRef.current = identity;
+        dashboardCache.current = {latest:null,pending:null};
         loadSequenceRef.current++;
         workspaceSequenceRef.current++;
         setWorkspace(null);
@@ -1011,7 +1015,7 @@ export default function AgencyOperatingWorkspace() {
   }, [resolveWorkspace, sessionReady, signedIn]);
 
   useEffect(() => {
-    if (!signedIn || !workspace?.tenant_id || restrictedView) return;
+    if (!signedIn || restrictedView || (!workspace?.tenant_id && view !== 'home')) return;
     preloadWorkspaceView(view, showPlayerProfile);
   }, [view, showPlayerProfile, signedIn, workspace?.tenant_id, restrictedView]);
 
@@ -1544,6 +1548,7 @@ export default function AgencyOperatingWorkspace() {
             ) : null}
             {!clubAccountRequest && view === 'home' ? (
               <AgencyDashboardConnected
+                cache={dashboardCache.current}
                 refreshKey={recordRefreshRevision}
                 invoke={invoke}
                 tenantId={workspace.tenant_id}
