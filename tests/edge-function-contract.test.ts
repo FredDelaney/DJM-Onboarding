@@ -63,6 +63,7 @@ test("every deployed Edge Function has source and explicit JWT configuration", (
     "refresh-clubelo-team-strength",
     "refresh-global-football-identity",
     "refresh-global-football-intelligence",
+    "refresh-kickoff-fixtures",
     "refresh-official-football-data",
     "refresh-player-data",
     "refresh-player-data-universal",

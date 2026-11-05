@@ -10,6 +10,20 @@ try{
  await page.clock.setFixedTime(new Date('2026-10-06T10:00:00Z'));
  const pageErrors=[];page.on('pageerror',error=>pageErrors.push(error.message));
  for(let attempt=0;attempt<60;attempt++){try{await page.goto(process.env.CALENDAR_QA_URL||'http://127.0.0.1:3101/qa-calendar');break;}catch(error){if(attempt===59)throw error;await page.waitForTimeout(500);}}
+ const calendarUrl=process.env.CALENDAR_QA_URL||'http://127.0.0.1:3101/qa-calendar';
+ await page.route('https://cdn.kickoffapi.com/images/teams/42.png',route=>route.fulfill({
+  contentType:'image/svg+xml',body:'<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18"><circle cx="9" cy="9" r="9"/></svg>',
+ }));
+ await page.goto(calendarUrl+'?kickoff=1');
+ const match=page.locator('article').filter({hasText:'Fixture Player'});
+ await match.getByText('Harbour FC',{exact:true}).waitFor();
+ assert.equal(await match.getByText('20:30',{exact:true}).isVisible(),true);
+ assert.equal(await match.getByText('Riverside',{exact:true}).isVisible(),true);
+ await match.locator('img').scrollIntoViewIfNeeded();
+ await page.waitForFunction(()=>[...document.images].some(image=>image.src.includes('kickoffapi.com')&&image.naturalWidth>0));
+ assert.equal(await page.getByRole('link',{name:'Powered by KickoffAPI'}).getAttribute('href'),'https://kickoffapi.com/');
+ assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth),390);
+ await page.goto(calendarUrl);
  await page.getByRole('button',{name:'Add task',exact:true}).click({timeout:15000});
  await page.getByRole('dialog',{name:'Add task',exact:true}).waitFor();
  await page.getByLabel('Title',{exact:true}).fill('Review club shortlist');

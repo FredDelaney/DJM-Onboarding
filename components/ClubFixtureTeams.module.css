@@ -1,0 +1,32 @@
+.match {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px 6px;
+}
+.team {
+  display: inline-flex;
+  align-items: center;
+  min-width: 0;
+  gap: 5px;
+  overflow-wrap: anywhere;
+}
+.team img {
+  flex: 0 0 18px;
+  object-fit: contain;
+}
+.versus {
+  font-size: 0.85em;
+  font-weight: 400;
+}
+.credit {
+  display: block;
+  margin-block: 6px;
+  font-size: 11px;
+  color: #64748b;
+  overflow-wrap: anywhere;
+}
+.credit a {
+  color: inherit;
+  text-underline-offset: 2px;
+}

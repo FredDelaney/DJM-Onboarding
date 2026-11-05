@@ -32,6 +32,7 @@ import AgencyCalendarTaskForm from './AgencyCalendarTaskForm';
 import AgencyCalendarTaskRow from './AgencyCalendarTaskRow';
 import {sourceLabels} from '@/lib/calendar/useCalendarSources';
 import AgencyCalendarToday from './AgencyCalendarToday';
+import { ClubFixtureTeams, KickoffAttribution } from './ClubFixtureTeams';
 import { useCalendarSources } from '@/lib/calendar/useCalendarSources';
 import { normaliseCalendarEvents, filterCalendarEvents, groupCalendarEvents, todayProjection, birthdayGreeting, type CalendarEvent } from '@/lib/calendar/events';
 import { parseCalendarPreferences, calendarLayers, type CalendarLayer } from '@/lib/calendar/preferences';
@@ -155,9 +156,9 @@ export default function AgencyCalendarWorkspace({
     .map((work:any)=>({...work,task_id:work.work_id,...work.context})),[confirmedAssignments]);
   const sourceData=useMemo(()=>{
     const existingFollowUps=source.dates?.follow_ups?.items||[];
-    return {...source.dates,follow_ups:{items:[...existingFollowUps,...sharedFollowUps.filter((work:any)=>
+    return {...source.dates,clubFixtures:source.clubFixtures,follow_ups:{items:[...existingFollowUps,...sharedFollowUps.filter((work:any)=>
       !existingFollowUps.some((item:any)=>(item.work_kind||'task')===work.work_kind&&(item.work_id||item.task_id)===work.work_id))]}};
-  },[source.dates,sharedFollowUps]);
+  },[source.dates,source.clubFixtures,sharedFollowUps]);
   const birthdayData=source.birthdays;
   async function runTaskWrite(name:string,args:Record<string,unknown>){const scope=source.scope;try{const result=await rpc<any>(name,args);if(scopeRef.current!==scope)return;if(!result?.task)throw new Error('Task could not be confirmed.');source.confirmTask(result.task);setRefreshDates(n=>n+1);}catch(error){if(scopeRef.current===scope&&/task_owner_inactive|task_revision_conflict/.test(String((error as any)?.message||error)))setRefreshDates(n=>n+1);throw error;}}
   async function saveTask(input:TaskInput,task?:CalendarTask){await runTaskWrite(task?'redream_calendar_task_update_v1':'redream_calendar_task_create_v1',task?{p_task_id:task.id,p_expected_revision:task.revision,p_action:'edit',p_input:input,p_tenant_id:tenantId}:{p_input:input,p_tenant_id:tenantId});}
@@ -180,6 +181,8 @@ export default function AgencyCalendarWorkspace({
   const groups=useMemo(()=>groupCalendarEvents(agenda,selectedDate,view,horizon,now),[agenda,selectedDate,view,horizon,now]);
   const todayEvents=filterCalendarEvents(projectConfirmedCalendarWork(normaliseCalendarEvents({...source.todayDates,follow_ups:{items:[...(source.todayDates?.follow_ups?.items||[]),...sharedFollowUps]}},{items:[]},[...source.todayTasks,...source.overdue]),workControl.overrides),preferences);
   const todaySummary=todayProjection(todayEvents,now);
+  const fixtureItems=agenda.filter(item=>item.fixture);
+  const fixtureCredits=[...new Set(fixtureItems.flatMap(item=>item.fixture?.attribution ?? []))];
   const undated=source.undated.filter(task=>preferences.layers[task.visibility]);
   const sharedUndated=confirmedAssignments.filter((work:any)=>work.work_kind!=='calendar_task'&&!work.due_at);
   const formatWhen = (item: AgendaItem) => {
@@ -201,6 +204,7 @@ export default function AgencyCalendarWorkspace({
 
   const iconFor = (item: AgendaItem) => {
     if (item.kind === 'meeting') return <Users size={15} />;
+    if (item.kind === 'fixture') return <CalendarDays size={15} />;
     if (item.kind === 'follow_up') return <Clock3 size={15} />;
     if (item.kind === 'birthday') return <CakeSlice size={15} />;
     if (item.deadlineType === 'contract_expiry') {
@@ -392,7 +396,7 @@ export default function AgencyCalendarWorkspace({
           </button>)}
         </div>:null}
         <details className={styles.calendarFilters}><summary>Show in calendar</summary><div className={styles.layerFilters}>
-          {calendarLayers.map(layer=><label key={layer}><input type="checkbox" checked={preferences.layers[layer]} onChange={e=>setPreferences(p=>({...p,layers:{...p.layers,[layer]:e.target.checked}}))}/>{({personal:'My tasks',company:'Company tasks',meetings:'Meetings',followUps:'Follow-ups',agencyDates:'Agency dates',birthdays:'Birthdays'} as Record<CalendarLayer,string>)[layer]}</label>)}
+          {calendarLayers.map(layer=><label key={layer}><input type="checkbox" checked={preferences.layers[layer]} onChange={e=>setPreferences(p=>({...p,layers:{...p.layers,[layer]:e.target.checked}}))}/>{({personal:'My tasks',company:'Company tasks',meetings:'Meetings',followUps:'Follow-ups',agencyDates:'Agency dates',birthdays:'Birthdays',fixtures:'Club fixtures'} as Record<CalendarLayer,string>)[layer]}</label>)}
           <label><input type="checkbox" checked={showDone} onChange={e=>setShowDone(e.target.checked)}/>Show completed tasks</label><label><input type="checkbox" checked={showArchived} onChange={e=>setShowArchived(e.target.checked)}/>Show archived tasks</label>
         </div><fieldset className={styles.birthdayFilters}><legend><CakeSlice size={16}/>Birthdays</legend>
           {([['players','Signed players'],['contacts','Club contacts'],['staff','Our team']] as const).map(([key,label])=><label key={key}>
@@ -405,6 +409,7 @@ export default function AgencyCalendarWorkspace({
       {greeting?<div className={styles.greeting} role="status"><span>{greeting}</span><button onClick={()=>setGreeting('')}>Dismiss</button></div>:null}
       {source.errors.map(error=><div key={error.name} className={styles.datesError} role="alert">{error.message}<button type="button" onClick={()=>source.retry(error.name)}>Retry {error.name==='tasks'?'tasks':sourceLabels[error.name]}</button></div>)}
       {datesBusy ? <p className={styles.loadingDates} role="status">Updating dates...</p> : null}
+      {fixtureItems.length > 0 && <KickoffAttribution credits={fixtureCredits}/>}
       <div className={view==='month'?styles.calendarBody:styles.agendaBody}>
         {view==='month'?<CalendarMonth date={selectedDate} items={agenda} onSelect={setSelectedDate}/>:null}
         <div className={styles.dayPanel}>
@@ -460,13 +465,15 @@ export default function AgencyCalendarWorkspace({
                         ) : null}
                       </div>
 
-                      <strong>{item.title}</strong>
+                      <strong>{item.fixture
+                        ? <ClubFixtureTeams home={item.fixture.home} away={item.fixture.away} homeLogo={item.fixture.homeLogo} awayLogo={item.fixture.awayLogo}/>
+                        : item.title}</strong>
                       <small>{item.detail}</small>
                       {workRefFor({work_kind:item.workKind,work_id:item.workId})?<WorkResponsibilityControl key={source.scope+item.key} work={workRefFor({work_kind:item.workKind,work_id:item.workId})!} tenantId={tenantId} rpc={rpc}/>:null}
                     </div>
                     {item.kind==='birthday'?<button type="button" className={styles.birthdayCopy} onClick={()=>void copyBirthday()}>Copy greeting</button>:null}
 
-                    {'prepareMeeting' in action &&
+                    {item.kind === 'fixture' ? null : 'prepareMeeting' in action &&
                     action.prepareMeeting ? (
                       <button
                         type="button"

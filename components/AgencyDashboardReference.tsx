@@ -23,6 +23,8 @@ import {
 } from 'lucide-react';
 import styles from './AgencyDashboardReference.module.css';
 
+import { ClubFixtureTeams, KickoffAttribution } from './ClubFixtureTeams';
+
 export type DashboardScope = 'me' | 'agency';
 export type DashboardCreateKind = 'player' | 'club_need';
 export type DashboardMetric = number | null;
@@ -31,6 +33,10 @@ export type DashboardFixture = {
   kickoffAt: string;
   homeName: string;
   awayName: string;
+  homeLogo?: string | null;
+  awayLogo?: string | null;
+  source?: 'kickoffapi';
+  attribution?: string[];
   relatedPlayerNames: string[];
   status: string;
   // Only authorised tenant-owned links, never external or constructed from raw record IDs.
@@ -69,6 +75,7 @@ export type DashboardSnapshot = {
   fixturesToday: DashboardMetric;
   agencyContractsExpiring90Days: DashboardMetric;
   clubContractsExpiringThisCalendarYear: DashboardMetric;
+  fixtureCoverage?: {eligible: number; fresh: number} | null;
   fixtures: DashboardFixture[];
   clubRequests: DashboardRequest[];
   upcomingEvents: DashboardEvent[];
@@ -181,6 +188,8 @@ export default function AgencyDashboardReference({
 }: AgencyDashboardReferenceProps) {
   const requestPage = `${basePath}?view=opportunities&tab=needs`;
   const calendarPage = `${basePath}?view=calendar`;
+  const kickoffFixtures=snapshot.fixtures.filter(fixture=>fixture.source==='kickoffapi');
+  const fixtureCredits=[...new Set(kickoffFixtures.flatMap(fixture=>fixture.attribution ?? []))];
   const metrics = [
     {key:'clients', label:'Total Clients', value:snapshot.activeClients, hint:'Active represented players', Icon:UsersRound},
     {key:'fixtures', label:"Today's Fixtures", value:snapshot.fixturesToday, hint:'Fixtures scheduled', Icon:CalendarDays},
@@ -240,11 +249,14 @@ export default function AgencyDashboardReference({
              <div className={styles.fixture}>
                <time>{readableTime(fixture.kickoffAt,snapshot.timeZone)}</time>
                <i aria-hidden="true"/>
-               <div><strong>{fixture.homeName} vs {fixture.awayName}</strong>
-                 <span>{fixture.relatedPlayerNames.length?fixture.relatedPlayerNames.join(', '):'No linked players confirmed'}</span>
+               <div><strong><ClubFixtureTeams home={fixture.homeName} away={fixture.awayName} homeLogo={fixture.homeLogo} awayLogo={fixture.awayLogo}/></strong>
+                 <span className={styles.fixturePlayers}>{fixture.relatedPlayerNames.length?fixture.relatedPlayerNames.join(', '):'No linked players confirmed'}</span>
                </div>
              </div>
            </SmallLink>)}
+          {snapshot.fixtureCoverage && snapshot.fixtureCoverage.fresh<snapshot.fixtureCoverage.eligible &&
+            <p className={styles.fixturePlayers}>Schedule available for {snapshot.fixtureCoverage.fresh} of {snapshot.fixtureCoverage.eligible} signed players in this view.</p>}
+          {kickoffFixtures.length > 0 && <KickoffAttribution credits={fixtureCredits}/>}
         </div>
       </section>
     </div>

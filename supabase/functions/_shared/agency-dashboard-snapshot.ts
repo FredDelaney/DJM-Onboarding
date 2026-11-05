@@ -7,9 +7,11 @@
 
 type Row = Record<string, any>;
 type Query = {data: Row[] | null; error: {message?: string} | null};
+type RpcResponse = {data:unknown;error:Query['error']};
+type RpcRequest = PromiseLike<RpcResponse> & {abortSignal?: (signal:AbortSignal)=>PromiseLike<RpcResponse>};
 type QueryClient = {
   from: (table:string)=>any;
-  rpc: (fn:string,args:Record<string,unknown>)=>PromiseLike<{data:unknown;error:Query['error']}>;
+  rpc: (fn:string,args:Record<string,unknown>)=>RpcRequest;
 };
 export type DashboardRequestContext = {
   client: QueryClient;
@@ -63,12 +65,17 @@ export async function readAgencyDashboardSnapshot(ctx:DashboardRequestContext) {
   const snapshot={scope,localDate:date,timeZone,generatedAt:new Date().toISOString(),
     activeClients:null as number|null,fixturesToday:null as number|null,
     agencyContractsExpiring90Days:null as number|null,clubContractsExpiringThisCalendarYear:null as number|null,
-    fixtures:[] as Row[],clubRequests:[] as Row[],upcomingEvents:[] as Row[],recentActivity:[] as Row[],errors};
+    fixtureCoverage:null as Row|null,fixtures:[] as Row[],clubRequests:[] as Row[],upcomingEvents:[] as Row[],recentActivity:[] as Row[],errors};
 
   // These reads are independent of the roster and its representation agreements.
   const sourcesRead = Promise.resolve(client.rpc('platform_server_dashboard_sources', {
     p_tenant_id:tenantId,p_actor_user_id:userId,p_scope:scope,p_fixture_date:date,p_today:today,
   })).catch(() => null);
+  const kickoffRequest = client.rpc('platform_server_kickoff_fixtures', {
+    p_tenant_id:tenantId,p_actor_user_id:userId,p_scope:scope,p_start:date,p_end:datePlus(date,1),p_timezone:timeZone,
+  });
+  const kickoffRead = Promise.resolve(kickoffRequest.abortSignal?.(AbortSignal.timeout(2000)) ?? kickoffRequest)
+    .catch(() => null);
   const activityRead = Promise.resolve(client.rpc('platform_server_dashboard_recent_activity', {
     p_tenant_id:tenantId,p_actor_user_id:userId,p_scope:scope,p_limit:12,
   })).catch(() => null);
@@ -135,10 +142,13 @@ export async function readAgencyDashboardSnapshot(ctx:DashboardRequestContext) {
     ? sourcesResult.data as Record<string,unknown> : {};
   const sourceRows=(key:string)=>asRows({data:sources[key],error:null});
 
-  // Fixtures are shown only when the service returns a verified player link.
+  // Club schedules and verified appearances are separate sources. Either may be unavailable.
   if(playerIds.length && !errors.fixtures) {
     try {
       const links=safeLimit(sourceRows('fixture_links'),500);
+      const kickoffResult=await kickoffRead;
+      const kickoff=kickoffResult?.error ? null : kickoffResult?.data as Row|null;
+      snapshot.fixtureCoverage=kickoff?.coverage ?? null;
       const fixtures=new Map<string,Row>();
       for(const link of links){
         const player=playerById.get(str(link.player_id));
@@ -151,10 +161,32 @@ export async function readAgencyDashboardSnapshot(ctx:DashboardRequestContext) {
         fixture.relatedPlayerNames.add(`${player.first_name||''} ${player.last_name||''}`.trim());
         fixtures.set(fixtureId,fixture);
       }
-      if(links.length){
-        snapshot.fixturesToday=fixtures.size;
-        snapshot.fixtures=[...fixtures.values()].slice(0,12)
-          .map(fixture=>({...fixture,relatedPlayerNames:[...fixture.relatedPlayerNames]}));
+      const matchKey=(fixture:Row)=>JSON.stringify([
+        Date.parse(fixture.kickoffAt),str(fixture.homeName).toLowerCase(),str(fixture.awayName).toLowerCase(),
+      ]);
+      const existing=new Map([...fixtures.values()].map(fixture=>[matchKey(fixture),fixture]));
+      for(const row of (Array.isArray(kickoff?.items) ? kickoff.items : [])){
+        if(!Array.isArray(row?.players) || dayInZone(row.kickoff_at,timeZone)!==date)continue;
+        const related=row.players.filter((player:Row)=>playerById.has(str(player.id)));
+        if(!related.length)continue;
+        const fixture={
+          fixtureId:row.fixture_id,kickoffAt:row.kickoff_at,homeName:row.home_team_name,awayName:row.away_team_name,
+          homeLogo:row.home_logo,awayLogo:row.away_logo,status:row.status,source:'kickoffapi',
+          attribution:row.attribution,relatedPlayerNames:new Set<string>(related.map((player:Row)=>str(player.name))),
+          href:`${basePath}?view=calendar&date=${date}`,
+        };
+        const sameMatch=existing.get(matchKey(fixture));
+        if(sameMatch){
+          for(const name of sameMatch.relatedPlayerNames)fixture.relatedPlayerNames.add(name);
+          fixtures.delete(sameMatch.fixtureId);
+        }
+        fixtures.set(fixture.fixtureId,fixture);
+      }
+      if(links.length || snapshot.fixtureCoverage || fixtures.size){
+        const fullCoverage=snapshot.fixtureCoverage && snapshot.fixtureCoverage.fresh===snapshot.fixtureCoverage.eligible;
+        snapshot.fixturesToday=fixtures.size || (fullCoverage || links.length ? 0 : null);
+        snapshot.fixtures=[...fixtures.values()].sort((a,b)=>Date.parse(a.kickoffAt)-Date.parse(b.kickoffAt))
+          .slice(0,12).map(fixture=>({...fixture,relatedPlayerNames:[...fixture.relatedPlayerNames]}));
       }
     }catch{errors.fixtures='Verified fixture links unavailable';}
   }

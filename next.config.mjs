@@ -7,7 +7,7 @@ const contentSecurityPolicy = [
   // to development; wasm-unsafe-eval permits WASM without JavaScript eval.
   `script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval'${isDevelopment ? " 'unsafe-eval'" : ''}`,
   "style-src 'self' 'unsafe-inline'",
-  "img-src 'self' blob: data: https://*.supabase.co",
+  "img-src 'self' blob: data: https://*.supabase.co https://cdn.kickoffapi.com/images/",
   "font-src 'self' data:",
   "connect-src 'self' https://*.supabase.co wss://*.supabase.co",
   "media-src 'self' blob: https://*.supabase.co",
